@@ -1286,6 +1286,17 @@ export function updateUnit(world, unit, dt) {
     return;
   }
 
+  // Halte demandée par radio. La mission attend, mais l'élément continue de se
+  // défendre : on ne cesse pas de riposter parce qu'on a cessé d'avancer.
+  if (unit.halte) {
+    unit.speed = 0;
+    clearPath(unit);
+    unit.updateFatigue(world, dt, false);
+    if (unit.suppression > 0.3) unit.posture = 'prone';
+    engage(world, unit, dt);
+    return;
+  }
+
   if (!unit.order) {
     unit.speed = 0;
     unit.updateFatigue(world, dt, false);

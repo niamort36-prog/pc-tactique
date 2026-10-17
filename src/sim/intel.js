@@ -4,6 +4,7 @@
 import { LVL, LVL_LABEL, radioLink } from './sensors.js';
 import { azimuth, formatDist, clamp } from '../core/util.js';
 import { CATALOG } from './catalog.js';
+import { NETS } from './unit.js';
 
 const TYPE_FR = {
   'infantry': 'infanterie', 'command': 'PC', 'reco': 'reconnaissance', 'sniper': 'tireur d’élite',
@@ -30,6 +31,28 @@ export class Intel {
       from: unit ? unit.callsign : 'PC',
       net: unit ? unit.net : 'CDT',
       freq: unit ? unit.freq : 31.250,
+      text, kind,
+    };
+    this.log.push(entry);
+    if (this.log.length > 400) this.log.splice(0, this.log.length - 400);
+    this.world.emit('radio', entry);
+    return entry;
+  }
+
+  /**
+   * Le PC prend l'antenne.
+   *
+   * Ce n'est pas un compte rendu : le message part sur le réseau que le chef a
+   * choisi en prenant un poste, et non sur le réseau de commandement par
+   * défaut. C'est ce qui fait qu'un poste coupé coupe aussi la parole — on
+   * n'émet pas sur un poste qu'on a éteint.
+   */
+  emettre(net, text, kind = 'order') {
+    const info = NETS[net];
+    const entry = {
+      t: this.world.time,
+      from: 'PC', net,
+      freq: info ? info.freq : 31.250,
       text, kind,
     };
     this.log.push(entry);

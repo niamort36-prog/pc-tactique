@@ -931,44 +931,113 @@ export class Tent {
   // Le moniteur de situation, posé sur la table et tourné vers l'entrée. Les
   // éléments ne sont créés qu'une fois ; poserMoniteur() les redimensionne,
   // pour ne jamais avoir à redéplacer l'interface de jeu qu'ils portent.
+  /**
+   * Le poste de situation.
+   *
+   * La dalle est le seul élément qu'on ne refait jamais : elle porte
+   * l'interface du jeu, et la détacher de son parent la rendrait au mieux
+   * floue, au pire muette. Tout le reste — cadre, coque, bombé arrière,
+   * charnière, colonne, socle — dépend de la hauteur de l'écran, laquelle
+   * suit les proportions de la fenêtre : on le rebâtit donc à chaque
+   * redimensionnement, dans un bloc qu'on vide et qu'on remplit.
+   */
   moniteur() {
-    this.mon = {
-      carcasse: [0, 1, 2, 3, 4].map(() => noeud('face carcasse')),
-      vitre: noeud('face vitre'),
-      dalle: noeud('face dalle'),
-      reflet: noeud('face reflet'),
-      plaque: noeud('face plaque-mon'),
-    };
-    this.mon.plaque.textContent = 'POSTE DE SITUATION';
+    this.monBloc = noeud('bloc-moniteur');
+    this.mon = { dalle: noeud('face dalle') };
     this.mon.dalle.append(this.game);
-    this.w3d.append(...this.mon.carcasse, this.mon.vitre, this.mon.dalle,
-                    this.mon.reflet, this.mon.plaque);
-    this.w3d.append(...boite('carcasse', {
-      x: MON.x, y: -(TABLE.h + 3), z: MON.z, w: 46, h: 6, d: 26,
-    }));
+    this.w3d.append(this.monBloc, this.mon.dalle);
     this.poserMoniteur();
   }
 
   poserMoniteur() {
     const vw = window.innerWidth, vh = window.innerHeight;
     const monH = MON_W * vh / vw;
-    const W = MON_W + 11, H = monH + 20, D = 12;
-    // le pied fait 6 cm : la carcasse repose dessus, et c'est elle, pas la
-    // dalle, qui donne la hauteur du centre
-    MON.y = -(TABLE.h + 6 + H / 2);
 
-    const specs = [
-      { w: W, h: D, x: MON.x, y: MON.y - H / 2, z: MON.z, rx: 90 },
-      { w: W, h: H, x: MON.x, y: MON.y, z: MON.z + D / 2 },
-      { w: W, h: H, x: MON.x, y: MON.y, z: MON.z - D / 2 },
-      { w: D, h: H, x: MON.x + W / 2, y: MON.y, z: MON.z, ry: 90 },
-      { w: D, h: H, x: MON.x - W / 2, y: MON.y, z: MON.z, ry: 90 },
-    ];
-    specs.forEach((o, i) => poser(this.mon.carcasse[i], o));
-    poser(this.mon.vitre,  { w: MON_W, h: monH, x: MON.x, y: MON.y, z: MON.z + MON_EP - 0.1 });
-    poser(this.mon.dalle,  { w: MON_W, h: monH, x: MON.x, y: MON.y, z: MON.z + MON_EP });
-    poser(this.mon.reflet, { w: MON_W, h: monH, x: MON.x, y: MON.y, z: MON.z + MON_EP + 0.1 });
-    poser(this.mon.plaque, { w: MON_W, h: 13, x: MON.x, y: MON.y + monH / 2 + 8, z: MON.z + MON_EP });
+    const BZ = 2.4;        // cadre haut et latéral
+    const BZB = 5.6;       // cadre bas : il porte la plaque et la diode
+    const D = 5.5;         // épaisseur de la dalle
+    const HC = 15;         // hauteur de la colonne du pied
+    const EP = 2.2;        // épaisseur du socle
+
+    const W = MON_W + 2 * BZ, H = monH + BZ + BZB;
+    const avant = MON.z + MON_EP;          // plan de la dalle et du cadre
+    const zc = avant - D / 2;              // centre de la coque
+    const dos = avant - D;
+
+    // La hauteur se déduit du pied : socle sur le plateau, colonne dessus, et
+    // le bas de la coque posé sur la colonne. MON.y reste le centre de l'image,
+    // parce que c'est lui qui commande la pose du chef devant l'écran.
+    const basCoque = -(TABLE.h + EP + HC);
+    MON.y = basCoque - (BZB - BZ) / 2 - H / 2;
+    const yc = MON.y + (BZB - BZ) / 2;     // centre de la coque
+
+    const f = [];
+
+    // ---- la coque : quatre chants et un dos ----------------------------
+    f.push(
+      face('carcasse dessus', { w: W, h: D, x: MON.x, y: yc - H / 2, z: zc, rx: 90 }),
+      face('carcasse dessous', { w: W, h: D, x: MON.x, y: yc + H / 2, z: zc, rx: 90 }),
+      face('carcasse fl', { w: D, h: H, x: MON.x + W / 2, y: yc, z: zc, ry: 90 }),
+      face('carcasse fl', { w: D, h: H, x: MON.x - W / 2, y: yc, z: zc, ry: 90 }),
+      face('carcasse ar', { w: W, h: H, x: MON.x, y: yc, z: dos }),
+    );
+
+    // ---- le cadre : quatre traverses autour de l'image ------------------
+    f.push(
+      face('cadre-mon haut', { w: W, h: BZ, x: MON.x, y: MON.y - monH / 2 - BZ / 2, z: avant }),
+      face('cadre-mon bas', { w: W, h: BZB, x: MON.x, y: MON.y + monH / 2 + BZB / 2, z: avant }),
+      face('cadre-mon cote', { w: BZ, h: monH, x: MON.x - MON_W / 2 - BZ / 2, y: MON.y, z: avant }),
+      face('cadre-mon cote', { w: BZ, h: monH, x: MON.x + MON_W / 2 + BZ / 2, y: MON.y, z: avant }),
+    );
+
+    // ---- le bombé arrière, où loge l'électronique --------------------
+    const bw = W * 0.52, bh = H * 0.44, bd = 5;
+    f.push(...boite('carcasse bombe', {
+      x: MON.x, y: yc + H * 0.04, z: dos - bd / 2, w: bw, h: bh, d: bd,
+    }));
+    // ouïes de refroidissement sur son dos
+    for (let k = 0; k < 7; k++) {
+      f.push(face('ouie', {
+        w: bw * 0.56, h: 1.1, x: MON.x, y: yc + H * 0.04 - bh / 2 + 7 + k * 4.4, z: dos - bd - 0.1,
+      }));
+    }
+    // les connectiques, sous le bombé
+    f.push(face('connectique', {
+      w: bw * 0.44, h: 3.4, x: MON.x, y: yc + H * 0.04 + bh / 2 - 3, z: dos - bd - 0.1,
+    }));
+
+    // ---- charnière, colonne, socle --------------------------------------
+    f.push(...boite('carcasse charniere', {
+      x: MON.x, y: basCoque + 1, z: dos - 3, w: 17, h: 9, d: 11,
+    }));
+    f.push(...boite('colonne-mon', {
+      x: MON.x, y: -(TABLE.h + EP + HC / 2), z: dos - 3, w: 11.5, h: HC, d: 7.5,
+    }));
+    f.push(...boite('socle-mon', {
+      x: MON.x, y: -(TABLE.h + EP / 2), z: dos - 1, w: 40, h: EP, d: 22,
+    }));
+    f.push(face('ombre', { w: 56, h: 32, x: MON.x, y: -(TABLE.h + 0.4), z: dos - 1, rx: 90 }));
+
+    // ---- plaque, diode de veille, et le câble qui descend ---------------
+    const plaque = face('plaque-mon', { w: MON_W * 0.42, h: BZB * 0.62, x: MON.x, y: MON.y + monH / 2 + BZB / 2, z: avant + 0.05 });
+    plaque.textContent = 'POSTE DE SITUATION';
+    f.push(plaque);
+    f.push(face('diode-mon', {
+      w: 1.6, h: 1.6, x: MON.x + MON_W / 2 - 2.6, y: MON.y + monH / 2 + BZB / 2, z: avant + 0.05,
+    }));
+    f.push(face('vitre', { w: MON_W, h: monH, x: MON.x, y: MON.y, z: avant - 0.1 }));
+    // le reflet se garde sous la main : il s'efface quand on s'installe devant
+    this.mon.reflet = face('reflet', { w: MON_W, h: monH, x: MON.x, y: MON.y, z: avant + 0.1 });
+    f.push(this.mon.reflet);
+
+    // le câble sort du dos, descend derrière la colonne et file sur le plateau
+    f.push(...poteau('cable', { w: 2.6, h: HC + 6, x: MON.x + 6, y: -(TABLE.h + HC / 2 + 1), z: dos - 6 }));
+    f.push(face('cable', {
+      w: 34, h: 2.6, x: MON.x + 22, y: -(TABLE.h + 1.2), z: dos - 6, rx: 90,
+    }));
+
+    this.monBloc.replaceChildren(...f);
+    poser(this.mon.dalle, { w: MON_W, h: monH, x: MON.x, y: MON.y, z: avant });
   }
 
   /**

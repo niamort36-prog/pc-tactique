@@ -2074,3 +2074,73 @@ body.leaned #btn-step-back { display: inline-flex; }
 .portatif .lcd .l2 { font-size: 15px; }
 .portatif .lcd .l3 { font-size: 14px; }
 .manpack .lcd { font-size: 19px; }
+
+/* ================================================= le poste de situation
+
+   La coque, le cadre et le pied du moniteur. Le cadre est en quatre
+   traverses plutôt qu'en un seul panneau percé : chacune porte alors son
+   ombre de contact, et l'écran paraît enfoncé dans son châssis au lieu
+   d'être collé dessus. */
+
+.bloc-moniteur {
+  position: absolute; left: 0; top: 0; width: 0; height: 0;
+  transform-style: preserve-3d;
+}
+
+.carcasse, .cadre-mon, .colonne-mon, .socle-mon {
+  border-width: var(--trait, 1px); border-radius: 1.4px;
+  --grain: var(--t-polymere); --grain-pas: 24px;
+  --ombrage: inset 0 0 var(--ao, 6px) rgba(0, 0, 0, .5);
+  background-image: linear-gradient(180deg, #2e322b 0 14%, #22261f 54%, #15180f 96%);
+}
+.carcasse.dessus { background-image: linear-gradient(180deg, #3a3f35 0 44%, #272b22 100%); }
+.carcasse.ar, .carcasse.bombe {
+  background-image: linear-gradient(180deg, #292d25 0 20%, #191d16 100%);
+}
+.carcasse.charniere { background-image: linear-gradient(180deg, #343931 0 36%, #1e2219 100%); }
+
+/* Le cadre est légèrement plus clair que la coque : c'est ce qui le détache
+   quand on regarde l'écran de face, où les chants ne se voient plus. */
+.cadre-mon {
+  background-image: linear-gradient(180deg, #343931 0 22%, #24281f 72%, #181b13 100%);
+}
+.cadre-mon.cote {
+  background-image: linear-gradient(90deg, #1b1f17 0 18%, #343931 58%, #23271e 100%);
+}
+.cadre-mon.haut {
+  background-image: linear-gradient(180deg, #3b4038 0 46%, #262a21 100%);
+}
+
+/* Ouïes et connectique : des creux, donc du noir à peine éclairé sur l'arête. */
+.ouie, .connectique {
+  border-radius: 1px;
+  background-image: linear-gradient(180deg, #0c0e08 0 62%, #30352a 100%);
+}
+.connectique {
+  background-image:
+    repeating-linear-gradient(90deg, #0c0e08 0 4px, #2b3025 4px 5.4px),
+    linear-gradient(#14170f, #14170f);
+}
+
+.colonne-mon { background-image: linear-gradient(90deg, #1a1e16 0 16%, #363b32 54%, #22261e 100%); }
+.socle-mon { background-image: linear-gradient(180deg, #353a31 0 30%, #1d211a 100%); }
+.socle-mon.dessus { background-image: linear-gradient(180deg, #3e4339 0 50%, #2a2e25 100%); }
+
+/* La diode de veille : allumée, le poste est sous tension. */
+.diode-mon {
+  border-radius: 50%; border-width: var(--trait, .5px);
+  background-image: radial-gradient(circle at 42% 36%, #d8ffe0 0 26%, #4fd46e 54%, #1d5e2c 100%);
+  box-shadow: 0 0 9px 2px rgba(79, 212, 110, .45);
+}
+
+/* La sérigraphie du bandeau bas. Elle était composée en 7 px, soit sept
+   centimètres de haut dans la pièce : les lettres débordaient du cadre et
+   couraient sur le pied. Deux centimètres, c'est la cote d'une marque
+   sérigraphiée, et elle tient dans son bandeau. */
+.plaque-mon {
+  display: flex; align-items: center; justify-content: center;
+  border: 0; overflow: hidden;
+  font: 700 2.1px var(--mono); letter-spacing: .34em; text-indent: .34em;
+  color: #6d7762; background: none;
+  --ombrage: none;
+}
