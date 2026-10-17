@@ -2,11 +2,26 @@
 
 import { T, CELL, TERRAIN } from './terrain.js';
 
+/**
+ * Les miroirs Overpass, dans l'ordre où on les sollicite.
+ *
+ * Six plutôt que trois, parce qu'ils tombent ensemble. Overpass est un service
+ * bénévole et sa charge est très inégale : aux heures pleines, un miroir
+ * répond 504, et les deux autres rendent une page d'erreur émise par leur
+ * proxy de tête — laquelle ne porte pas d'en-tête CORS. Le navigateur n'annonce
+ * alors pas la surcharge mais un refus d'origine croisée, ce qui fait chercher
+ * le défaut au mauvais endroit. C'est le même incident.
+ */
 const ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://overpass.osm.jp/api/interpreter',
+  'https://overpass.osm.ch/api/interpreter',
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
 ];
+const REPRISES = 2;          // tours de miroirs
+const ATTENTE = 6000;        // avant d'y revenir, le temps que la charge retombe
 
 function query(bb, timeout) {
   const b = bb.south + ',' + bb.west + ',' + bb.north + ',' + bb.east;
@@ -29,24 +44,40 @@ function query(bb, timeout) {
 
 export async function fetchOsm(bbox, onProgress = () => {}, timeout) {
   let lastErr;
-  for (const url of ENDPOINTS) {
-    try {
-      onProgress('Interrogation Overpass (' + new URL(url).hostname + ')…');
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(query(bbox, timeout)),
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
-      onProgress('OSM : ' + json.elements.length + ' éléments reçus');
-      return json.elements;
-    } catch (e) {
-      lastErr = e;
-      onProgress('Échec (' + e.message + '), miroir suivant…');
+  for (let tour = 0; tour < REPRISES; tour++) {
+    if (tour) {
+      onProgress('Tous les miroirs sont chargés — nouvelle tentative dans '
+        + (ATTENTE / 1000) + ' s…');
+      await new Promise(r => setTimeout(r, ATTENTE));
+    }
+    for (const url of ENDPOINTS) {
+      const hote = new URL(url).hostname;
+      try {
+        onProgress('Interrogation Overpass (' + hote + ')…');
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'data=' + encodeURIComponent(query(bbox, timeout)),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        onProgress('OSM : ' + json.elements.length + ' éléments reçus');
+        return json.elements;
+      } catch (e) {
+        lastErr = e;
+        // `fetch` ne distingue pas un miroir éteint d'un miroir qui refuse :
+        // dans les deux cas il jette « Failed to fetch ». Dire « surchargé »
+        // est l'explication juste neuf fois sur dix, et la seule sur laquelle
+        // celui qui lit puisse agir — attendre, ou réduire la zone.
+        const motif = /failed to fetch|networkerror|load failed/i.test(e.message)
+          ? 'surchargé ou injoignable' : e.message;
+        onProgress(hote + ' : ' + motif + ', miroir suivant…');
+      }
     }
   }
-  throw lastErr || new Error('Overpass injoignable');
+  throw new Error('Overpass ne répond sur aucun miroir. Le service est bénévole et '
+    + 'saturé par moments : réessayez dans une minute, ou prenez une zone plus petite.'
+    + (lastErr ? ' (' + lastErr.message + ')' : ''));
 }
 
 // --- classification des tags ---
