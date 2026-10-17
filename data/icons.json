@@ -1,0 +1,183 @@
+{
+ "units": {
+  "anti tank": {
+   "unknown": "icones/anti tank  inconnu.png",
+   "hostile": "icones/anti tank hostile.png",
+   "neutral": "icones/anti tank neutre.png",
+   "friend": "icones/Anti tank.png"
+  },
+  "command": {
+   "unknown": "icones/command  inconnu.png",
+   "hostile": "icones/command hostile.png",
+   "neutral": "icones/command neutre.png",
+   "friend": "icones/command.png"
+  },
+  "engineer": {
+   "hostile": "icones/engineer hostile.png",
+   "unknown": "icones/engineer inconnu.png",
+   "neutral": "icones/engineer neutre.png",
+   "friend": "icones/engineer.png"
+  },
+  "infantry": {
+   "unknown": "icones/infantry  inconnu.png",
+   "hostile": "icones/infantry hostile.png",
+   "neutral": "icones/infantry neutre.png",
+   "friend": "icones/infantry.png"
+  },
+  "infantry motorized": {
+   "unknown": "icones/infantry motorized  inconnu.png",
+   "hostile": "icones/infantry motorized hostile.png",
+   "friend": "icones/infantry motorized.png",
+   "neutral": "icones/motorized neutre.png"
+  },
+  "mechanized armor": {
+   "unknown": "icones/mechanized armor  inconnu.png",
+   "hostile": "icones/mechanized armor hostile.png",
+   "neutral": "icones/mechanized armor neutre.png",
+   "friend": "icones/mechanized armor.png"
+  },
+  "medical": {
+   "unknown": "icones/medical  inconnu.png",
+   "hostile": "icones/medical hostile.png",
+   "neutral": "icones/medical neutre.png",
+   "friend": "icones/medical.png"
+  },
+  "mortar": {
+   "hostile": "icones/mortar hostile.png",
+   "unknown": "icones/mortar inconnu.png",
+   "neutral": "icones/mortar neutre.png",
+   "friend": "icones/mortar.png"
+  },
+  "radio": {
+   "unknown": "icones/radio  inconnu.png",
+   "hostile": "icones/radio hostile.png",
+   "neutral": "icones/radio neutre.png",
+   "friend": "icones/radio.png"
+  },
+  "reco": {
+   "unknown": "icones/Reco  inconnu.png",
+   "hostile": "icones/reco hostile.png",
+   "neutral": "icones/reco neutre.png",
+   "friend": "icones/reco.png"
+  },
+  "relay radio": {
+   "hostile": "icones/relay radio hostile.png",
+   "unknown": "icones/relay radio inconnu.png",
+   "neutral": "icones/relay radio neutre.png",
+   "friend": "icones/relay radio.png"
+  },
+  "sf": {
+   "hostile": "icones/SF hostile.png",
+   "unknown": "icones/SF inconnu.png",
+   "neutral": "icones/SF neutre.png",
+   "friend": "icones/SF.png"
+  },
+  "sniper": {
+   "hostile": "icones/sniper hostile.png",
+   "unknown": "icones/sniper inconnu.png",
+   "neutral": "icones/sniper neutre.png",
+   "friend": "icones/sniper.png"
+  },
+  "transportation": {
+   "neutral": "icones/transport neutre.png",
+   "hostile": "icones/transportation hostile.png",
+   "unknown": "icones/transportation inconnu.png",
+   "friend": "icones/transportation.png"
+  },
+  "uav": {
+   "hostile": "icones/UAV hostile.png",
+   "unknown": "icones/UAV inconnu.png",
+   "neutral": "icones/UAV neutre.png",
+   "friend": "icones/UAV.png"
+  },
+  "uav operator": {
+   "hostile": "icones/UAV operator hostile.png",
+   "unknown": "icones/UAV operator inconnu.png",
+   "neutral": "icones/UAV operator neutre.png",
+   "friend": "icones/UAV operator.png"
+  }
+ },
+ "points": {
+  "ambulance exhange point": {
+   "friend": "icones/ambulance exhange point.png"
+  },
+  "ammunition supply point": {
+   "friend": "icones/ammunition supply point.png"
+  },
+  "casualty collect point": {
+   "friend": "icones/casualty collect point.png"
+  },
+  "checkpoint point": {
+   "friend": "icones/checkpoint point.png"
+  },
+  "contact point": {
+   "friend": "icones/contact point.png"
+  },
+  "coordination point": {
+   "friend": "icones/coordination point.png"
+  },
+  "destroy target point": {
+   "friend": "icones/destroy target point.png"
+  },
+  "firing point": {
+   "friend": "icones/firing point.png"
+  },
+  "hide point": {
+   "friend": "icones/hide point.png"
+  },
+  "interest point": {
+   "friend": "icones/interest point.png"
+  },
+  "passage point": {
+   "friend": "icones/passage point.png"
+  },
+  "rally point": {
+   "friend": "icones/rally point.png"
+  },
+  "rearm point": {
+   "friend": "icones/rearm refuel ressuply point .png"
+  },
+  "reload point": {
+   "friend": "icones/reload point.png"
+  },
+  "rendezvous point": {
+   "friend": "icones/RendezVous point.png"
+  },
+  "rescue control point": {
+   "friend": "icones/Rescue control point.png"
+  },
+  "start point": {
+   "friend": "icones/start point.png"
+  },
+  "structure bunker": {
+   "hostile": "icones/structure bunker hostile.png",
+   "unknown": "icones/structure bunker inconnu.png",
+   "neutral": "icones/structure bunker neutre.png",
+   "friend": "icones/structure bunker.png"
+  },
+  "structure fob": {
+   "hostile": "icones/structure FOB hostile.png",
+   "unknown": "icones/structure FOB inconnu.png",
+   "neutral": "icones/structure FOB neutre.png",
+   "friend": "icones/structure FOB.png"
+  },
+  "structure outpost": {
+   "hostile": "icones/structure outpost hostile.png",
+   "unknown": "icones/structure outpost inconnu.png",
+   "neutral": "icones/structure outpost neutre.png",
+   "friend": "icones/structure outpost.png"
+  },
+  "survey control point": {
+   "friend": "icones/survey control point.png"
+  },
+  "target point": {
+   "friend": "icones/target point.png"
+  },
+  "traffic control post": {
+   "friend": "icones/traffic control post.png"
+  },
+  "waypoint point": {
+   "friend": "icones/waypoint point.png"
+  }
+ }
+}

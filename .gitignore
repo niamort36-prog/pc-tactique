@@ -1,0 +1,8 @@
+# Rebuts du système de fichiers
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Python : le petit serveur de développement n'a pas besoin de ses caches
+__pycache__/
+*.pyc

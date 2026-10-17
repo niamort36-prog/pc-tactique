@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PC TACTIQUE — Simulation de commandement</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================ ÉCRAN DE MISE EN PLACE ============================ -->
+<section id="setup">
+  <div class="setup-panel">
+    <header>
+      <h1>PC TACTIQUE</h1>
+      <p class="sub">Simulation de commandement — vous dirigez depuis la tente, vos éléments manœuvrent seuls.</p>
+    </header>
+
+    <div class="setup-grid">
+      <div class="setup-col">
+        <label class="fld">
+          <span>Zone d’opération</span>
+          <div class="row">
+            <input id="place-search" type="text" placeholder="Commune, lieu-dit, coordonnées…" autocomplete="off">
+            <button id="btn-search" class="btn">Chercher</button>
+          </div>
+          <small id="search-status">Cliquez sur la carte pour déplacer le centre de la zone.</small>
+        </label>
+
+        <div class="row two">
+          <label class="fld"><span>Latitude</span><input id="lat" type="number" step="0.00001" value="48.6921"></label>
+          <label class="fld"><span>Longitude</span><input id="lon" type="number" step="0.00001" value="6.1844"></label>
+        </div>
+
+        <label class="fld">
+          <span>Côté de la zone : <b id="size-val">3.0 km</b></span>
+          <input id="size" type="range" min="1500" max="20000" step="500" value="3000">
+          <small id="size-note">Résolution 10 m — chargement rapide.</small>
+        </label>
+
+        <label class="fld chk"><span>Conditions réelles sur zone</span>
+          <label class="inline"><input type="checkbox" id="live-weather" checked>
+            Météo locale en direct</label>
+          <label class="inline"><input type="checkbox" id="live-clock" checked>
+            Heure locale réelle du lieu</label>
+          <small id="live-note">Relevé au déploiement. Décochez pour fixer vous-même les conditions.</small>
+        </label>
+
+        <div class="row two">
+          <label class="fld"><span>Heure</span>
+            <select id="hour">
+              <option value="5">05:00 — aube</option>
+              <option value="9" selected>09:00 — matin</option>
+              <option value="14">14:00 — plein jour</option>
+              <option value="19">19:00 — crépuscule</option>
+              <option value="23">23:00 — nuit</option>
+            </select>
+          </label>
+          <label class="fld"><span>Météo</span>
+            <select id="weather">
+              <option value="clear" selected>Ciel clair</option>
+              <option value="overcast">Couvert</option>
+              <option value="rain">Pluie</option>
+              <option value="fog">Brouillard</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="fld">
+          <span>Force adverse</span>
+          <select id="force">
+            <option value="villageois">1 · Milice villageoise</option>
+            <option value="insurges">2 · Insurgés aguerris</option>
+            <option value="paramilitaire">3 · Forces paramilitaires</option>
+            <option value="reguliere" selected>4 · Armée régulière</option>
+            <option value="elite">5 · Unité d’élite</option>
+          </select>
+          <small id="force-note"></small>
+        </label>
+
+        <label class="fld"><span>Température sur zone : <b id="temp-val">18 °C</b></span>
+          <input id="temp" type="range" min="-25" max="48" step="1" value="18">
+          <small id="temp-note"></small>
+        </label>
+
+        <div class="row two">
+          <label class="fld"><span>Éléments ennemis</span><input id="opfor" type="number" min="2" max="60" value="11"></label>
+          <label class="fld"><span>Groupes de civils</span><input id="civ" type="number" min="0" max="60" value="9"></label>
+        </div>
+
+        <label class="fld"><span>Graine aléatoire</span><input id="seed" type="number" value="20260819"></label>
+
+        <label class="fld chk"><span>Implantation du PC</span>
+          <label class="inline"><input type="checkbox" id="pick-hq">
+            Choisir moi-même l’emplacement sur la carte</label>
+          <small>Décoché : le PC s’installe automatiquement face à l’objectif.</small>
+        </label>
+
+        <label class="fld chk"><span>Moyens aériens</span>
+          <label class="inline"><input type="checkbox" id="airsup" checked>
+            Hélicoptères, et voilures fixes si la zone possède une piste</label>
+        </label>
+
+        <button id="btn-deploy" class="btn primary big">Déployer la section</button>
+        <div id="loadlog" class="loadlog"></div>
+      </div>
+
+      <div class="setup-col">
+        <div id="premap"></div>
+        <p class="hint">Les données de terrain (routes, bâti, forêts, cours d’eau) sont téléchargées depuis
+        OpenStreetMap et le relief depuis les tuiles d’élévation. Le chargement prend quelques secondes ;
+        une zone plus grande prend plus longtemps.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= TENTE DE COMMANDEMENT =========================
+     Vue à la première personne, déplacement libre. La pièce est construite en
+     CSS 3D par src/ui/tent.js : l'écran de situation et les postes radio sont
+     de vrais éléments du document posés dans la scène, donc vivants et
+     cliquables. Aucune ouverture vers l'extérieur. -->
+<section id="tent" hidden>
+  <div id="scene"><div id="world3d"></div></div>
+  <div id="grain"></div>
+  <!-- Ce qu'on prend en main : hors de la scène 3D, donc rendu à sa taille. -->
+  <div id="loupe" hidden></div>
+
+  <div id="hud">
+    <div id="reticule"></div>
+    <div id="prompt" hidden></div>
+    <div id="invite">Cliquez pour prendre la main</div>
+    <div id="aide-dep"><b>ZQSD</b> ou <b>WASD</b> se déplacer &nbsp;·&nbsp;
+      <b>souris</b> regarder &nbsp;·&nbsp; <b>E</b> s’installer à un poste &nbsp;·&nbsp;
+      <b>Échap</b> lâcher la souris</div>
+  </div>
+</section>
+
+<!-- ================================ JEU ================================ -->
+<section id="game" hidden>
+
+  <header id="topbar">
+    <button id="btn-step-back" title="Se redresser et revenir dans la tente (Échap)">◀ Tente</button>
+    <div class="brand">PC&nbsp;TACTIQUE</div>
+    <div class="clockbox">
+      <div class="clock" id="clock">00:00:00</div>
+      <div class="date" id="date"></div>
+    </div>
+    <div class="speeds">
+      <button data-speed="0" class="sp">❚❚</button>
+      <button data-speed="1" class="sp active">×1</button>
+      <button data-speed="2" class="sp">×2</button>
+      <button data-speed="4" class="sp">×4</button>
+      <button data-speed="8" class="sp">×8</button>
+    </div>
+    <div class="env" id="env"></div>
+    <div class="tally" id="tally"></div>
+    <div class="layers">
+      <select id="basemap">
+        <option>Plan OSM</option>
+        <option>Topographique</option>
+        <option>Satellite</option>
+        <option>Sombre</option>
+      </select>
+      <label><input type="checkbox" id="ly-terrain"> Terrain simulé</label>
+      <label><input type="checkbox" id="ly-relief"> Relief</label>
+      <label><input type="checkbox" id="ly-contours"> Courbes</label>
+      <label><input type="checkbox" id="ly-grid"> Grille</label>
+      <label><input type="checkbox" id="ly-radio"> Liaisons</label>
+      <label><input type="checkbox" id="ly-ranges"> Portées</label>
+      <label class="snd"><input type="checkbox" id="snd-on" checked> Son</label>
+      <label class="snd"><input type="checkbox" id="voice-on" checked> Voix</label>
+      <input type="range" id="snd-vol" min="0" max="100" value="60" title="Volume">
+    </div>
+  </header>
+
+  <aside id="left">
+    <h2>Ordre de bataille</h2>
+    <div id="oob"></div>
+    <h2>Réseaux radio</h2>
+    <div id="nets"></div>
+  </aside>
+
+  <main id="mapwrap">
+    <div id="map"></div>
+    <canvas id="tac"></canvas>
+    <div id="cursor-info"></div>
+    <div id="order-hint" hidden></div>
+  </main>
+
+  <aside id="right">
+    <div id="detail"><p class="empty">Sélectionnez un élément sur la carte ou dans l’ordre de bataille.</p></div>
+    <div id="orders"></div>
+  </aside>
+
+  <footer id="bottom">
+    <div class="logtabs">
+      <button class="tab combat-tab" data-net="COMBAT">⚔ Combat</button>
+      <button class="tab active" data-net="ALL">Tous</button>
+      <button class="tab" data-net="CDT">CDT</button>
+      <button class="tab" data-net="MAN">MAN</button>
+      <button class="tab" data-net="APP">APP</button>
+      <button class="tab" data-net="LOG">LOG</button>
+      <button class="tab" data-net="RECO">RECO</button>
+      <button class="tab" data-net="AIR">AIR</button>
+    </div>
+    <div id="radio"></div>
+    <div id="combat" hidden></div>
+  </footer>
+
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

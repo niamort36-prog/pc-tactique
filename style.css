@@ -1,0 +1,2076 @@
+:root {
+  --bg: #10130f;
+  --panel: #181c16;
+  --panel-2: #1f241c;
+  --line: #2d342a;
+  --ink: #dfe6d8;
+  --dim: #93a08c;
+  --accent: #ffd45e;
+  --blue: #7fb8ff;
+  --red: #ff6b5e;
+  --green: #8fe0a0;
+  --mono: "Consolas", "SF Mono", ui-monospace, monospace;
+
+  /* Palette de la tente, tenue comme une planche : peu de teintes, des
+     valeurs franches, et une encre unique pour tous les contours. */
+  --encre: #171a10;
+  --toile-h: #7c8152;  --toile-m: #565b3a;  --toile-b: #393d26;  --toile-n: #232617;
+  --toit-h: #666b41;
+  --sol-h: #3f432d;    --sol-b: #222519;
+  --bois-h: #c48f4c;   --bois-m: #8e6734;  --bois-b: #59401f;
+  --caisse-h: #9a7d45; --caisse-m: #6f5a30; --caisse-b: #453818;
+  --metal-h: #737b64;  --metal-m: #4a5140;  --metal-b: #2a2f23;
+  --sable-h: #8a8258;  --sable-m: #6a6442;  --sable-b: #46422b;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: .04em; }
+button { font: inherit; cursor: pointer; }
+
+/* ------------------------------------------------ mise en place */
+
+#setup[hidden], #game[hidden] { display: none !important; }
+
+#setup {
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(1200px 700px at 30% 20%, #1c2418, #0b0d09 70%);
+  overflow: auto;
+  padding: 24px;
+}
+.setup-panel {
+  width: min(1080px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 26px 30px 30px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.6);
+}
+.setup-panel header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+.setup-panel h1 { font-size: 26px; letter-spacing: .22em; color: var(--accent); }
+.setup-panel .sub { margin: 6px 0 0; color: var(--dim); font-size: 13px; }
+
+.setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+@media (max-width: 900px) { .setup-grid { grid-template-columns: 1fr; } }
+.setup-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.fld { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--dim); }
+.fld > span { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+.fld b { color: var(--ink); }
+.fld.chk .inline { display: flex; align-items: center; gap: 6px; color: var(--ink);
+  font-size: 12px; text-transform: none; letter-spacing: 0; }
+.fld.chk .inline input { width: auto; }
+#size-note, #force-note { color: var(--dim); }
+#force-note, #live-note, #temp-note { line-height: 1.5; }
+#temp-note.warn { color: #ffbe5e; }
+.fld.chk .inline + .inline { margin-top: 2px; }
+#force-note b { color: var(--accent); }
+#size-note.warn { color: #ffbe5e; }
+.row { display: flex; gap: 8px; }
+.row.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+input, select {
+  background: #0e110c; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 5px;
+  padding: 7px 9px; font: inherit; width: 100%;
+}
+input[type=range] { padding: 0; }
+input:focus, select:focus { outline: 1px solid var(--accent); }
+small { color: var(--dim); font-size: 11px; }
+
+.btn {
+  background: var(--panel-2); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 5px;
+  padding: 7px 14px; white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: #33401f; border-color: #4f6631; color: #eaffcf; }
+.btn.primary:hover { background: #3f5027; }
+.btn.big { padding: 12px; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
+
+#premap { height: 380px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.hint { color: var(--dim); font-size: 12px; margin: 0; }
+
+.loadlog {
+  font: 11px/1.6 var(--mono);
+  color: var(--dim);
+  background: #0b0e09;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 8px 10px;
+  max-height: 160px; overflow: auto;
+  display: none;
+}
+.loadlog.on { display: block; }
+.loadlog .err { color: var(--red); }
+.loadlog .ok { color: var(--green); }
+
+/* ------------------------------------------------ jeu */
+
+#game {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 260px 1fr 320px;
+  grid-template-rows: 44px 1fr 168px;
+  grid-template-areas:
+    "top top top"
+    "left map right"
+    "left bottom right";
+}
+
+#topbar {
+  grid-area: top;
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  overflow-x: auto;
+}
+#topbar .brand { color: var(--accent); letter-spacing: .2em; font-weight: 600; }
+.clockbox { display: flex; flex-direction: column; line-height: 1.05; }
+#topbar .clock { font: 600 17px var(--mono); letter-spacing: .06em; }
+#topbar .date { font-size: 10px; color: var(--dim); letter-spacing: .06em; white-space: nowrap; }
+.speeds { display: flex; gap: 3px; }
+.sp {
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--dim);
+  border-radius: 4px; padding: 3px 9px; font-size: 12px;
+}
+.sp.active { background: #3d4a26; border-color: #5d7038; color: #eaffcf; }
+.env, .tally { color: var(--dim); white-space: nowrap; }
+.tally b { color: var(--ink); }
+.layers { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--dim); white-space: nowrap; }
+.layers label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.layers input { width: auto; }
+.layers select { width: auto; padding: 3px 6px; }
+.layers #snd-vol { width: 68px; }
+.layers .snd { margin-left: 4px; }
+
+#left, #right {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 10px;
+}
+#left { grid-area: left; }
+#right { grid-area: right; border-right: 0; border-left: 1px solid var(--line); }
+#left h2, #right h2 {
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--dim); margin: 12px 0 6px; border-bottom: 1px solid var(--line); padding-bottom: 4px;
+}
+#left h2:first-child { margin-top: 0; }
+
+#mapwrap { grid-area: map; position: relative; overflow: hidden; }
+#map { position: absolute; inset: 0; background: #0c0f0a; }
+
+/* Le canevas tactique doit passer au-dessus des panneaux Leaflet.
+   #map ne crée pas de contexte d'empilement (z-index auto), donc ses panneaux
+   internes (tuiles 200, overlay 400, ombres 500, marqueurs 600) sont comparés
+   directement à #tac : sans z-index explicite, les symboles sont enterrés.
+   650 les place au-dessus, tout en restant sous les popups (700) et les
+   contrôles Leaflet (800+). */
+#tac { position: absolute; inset: 0; z-index: 650; pointer-events: none; }
+
+#cursor-info {
+  position: absolute; left: 8px; bottom: 8px; z-index: 900;
+  background: rgba(10,13,9,.82); border: 1px solid var(--line); border-radius: 4px;
+  padding: 4px 8px; font: 11px var(--mono); color: var(--dim); pointer-events: none;
+}
+#order-hint {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 900;
+  background: rgba(10,13,9,.9); border: 1px solid var(--accent); border-radius: 5px;
+  padding: 7px 14px; font-size: 12px; color: var(--accent); pointer-events: none;
+  max-width: 70%; text-align: center;
+}
+
+#bottom {
+  grid-area: bottom;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; min-height: 0;
+}
+.logtabs { display: flex; gap: 2px; padding: 5px 8px 0; border-bottom: 1px solid var(--line); }
+.tab {
+  background: transparent; border: 1px solid transparent; border-bottom: 0;
+  color: var(--dim); padding: 4px 12px; font-size: 11px; letter-spacing: .1em;
+  border-radius: 4px 4px 0 0;
+}
+.tab.active { background: var(--panel-2); border-color: var(--line); color: var(--accent); }
+#radio { flex: 1; overflow-y: auto; padding: 6px 10px; font: 12px/1.55 var(--mono); }
+#combat { flex: 1; overflow-y: auto; padding: 8px 12px; font-size: 12px; }
+#combat[hidden] { display: none; }
+.tab.combat-tab { color: #ff9d5e; }
+.tab.combat-tab.active { color: #ffb87a; }
+
+.bilan { display: flex; gap: 26px; flex-wrap: wrap; padding-bottom: 8px;
+  border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.bilan .b { display: flex; flex-direction: column; gap: 2px; }
+.bilan .lab { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.bilan .val { font: 600 15px var(--mono); }
+.bilan .val.blue { color: #8fd0ff; }
+.bilan .val.red { color: #ff8f6a; }
+.bilan .note { font-size: 10px; color: #6d7a68; }
+
+table.fight { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+table.fight th { text-align: left; font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--dim); font-weight: 400; padding: 3px 8px 3px 0; }
+table.fight td { padding: 2px 8px 2px 0; white-space: nowrap; font-family: var(--mono); }
+table.fight tr.hot td { color: #ffbe8a; }
+table.fight .cs { color: #e8f2ff; font-weight: 600; }
+table.fight .foe { color: #ff9d8a; }
+table.fight .dim { color: var(--dim); }
+table.fight .sup { display: inline-block; width: 46px; height: 4px; background: #000;
+  border-radius: 2px; overflow: hidden; vertical-align: middle; }
+table.fight .sup i { display: block; height: 100%; background: #ff7a4a; }
+#combat h3 { font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--dim); margin: 12px 0 4px; font-weight: 400; }
+#combat .none { color: var(--dim); font-size: 11px; }
+#radio .loss .tx { color: #ff7a6a; font-weight: 600; }
+#radio .fire .tx { color: #ffd08a; }
+#radio .msg { display: flex; gap: 8px; padding: 1px 0; }
+#radio .t { color: #6d7a68; }
+#radio .from { color: var(--blue); min-width: 74px; }
+#radio .tx { flex: 1; }
+#radio .contact .tx { color: #ffbe6a; }
+#radio .warn .tx { color: var(--red); }
+#radio .status .tx { color: var(--ink); }
+#radio .brief .tx { color: var(--accent); }
+#radio .order .tx { color: #9db98a; }
+#radio .log .tx { color: var(--dim); }
+/* Trafic passé pendant qu'un poste était coupé : on sait qu'il a existé,
+   on ne saura jamais ce qu'il disait. */
+#radio .missed { opacity: .55; }
+#radio .missed .from { color: #8a7b5e; }
+#radio .missed .tx { color: #8a7b5e; font-style: italic; }
+
+/* ------------------------------------------------ ordre de bataille */
+
+.unit-row {
+  display: grid; grid-template-columns: 26px 1fr auto;
+  gap: 7px; align-items: center;
+  padding: 5px 6px; border-radius: 5px; cursor: pointer;
+  border: 1px solid transparent;
+}
+.unit-row:hover { background: var(--panel-2); }
+.unit-row.sel { background: #2b3520; border-color: #5d7038; }
+.unit-row.dead { opacity: .4; }
+.unit-row img { width: 26px; height: 26px; }
+.unit-row .cs { font-weight: 600; font-size: 12px; }
+.unit-row .st { font-size: 10px; color: var(--dim); }
+.unit-row .st.alarm { color: #ff9d5e; font-weight: 600; letter-spacing: .03em; }
+.unit-row .mini { display: flex; flex-direction: column; gap: 2px; width: 40px; }
+.unit-row .bar { height: 3px; background: #000; border-radius: 2px; overflow: hidden; }
+.unit-row .bar i { display: block; height: 100%; }
+
+.net-row { display: flex; align-items: center; gap: 7px; font-size: 11px; padding: 3px 4px; color: var(--dim); }
+.net-row .dot { width: 8px; height: 8px; border-radius: 50%; }
+.net-row .f { font-family: var(--mono); color: var(--ink); }
+
+/* ------------------------------------------------ détail + ordres */
+
+#detail .empty { color: var(--dim); font-size: 12px; }
+.dhead { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.dhead img { width: 40px; height: 40px; }
+.dhead .cs { font-size: 17px; font-weight: 600; letter-spacing: .06em; }
+.dhead .ty { font-size: 11px; color: var(--dim); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 12px; margin: 8px 0; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; font-family: var(--mono); }
+.meter { margin: 5px 0; }
+.meter .lab { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--dim); }
+.meter .bar { height: 5px; background: #0a0d08; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.meter .bar i { display: block; height: 100%; }
+.roster { display: flex; flex-wrap: wrap; gap: 3px; margin: 6px 0; }
+.roster .m { width: 11px; height: 14px; border-radius: 2px; background: var(--green); }
+.roster .m.w1 { background: #ffd45e; }
+.roster .m.w2 { background: #ff9d4a; }
+.roster .m.w3 { background: #55302c; }
+.cargo { font-size: 11px; color: var(--dim); }
+
+#orders { margin-top: 10px; }
+.ogrid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.obtn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 5px; padding: 6px 7px; font-size: 11.5px; text-align: left;
+}
+.obtn:hover { border-color: var(--accent); }
+.obtn.on { background: #3d4a26; border-color: #6d8442; }
+.obtn img { width: 18px; height: 18px; }
+.obtn .k { margin-left: auto; color: var(--dim); font: 10px var(--mono); }
+.osec { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin: 12px 0 5px; }
+.opt-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.opt {
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--dim);
+  border-radius: 4px; padding: 3px 8px; font-size: 11px;
+}
+.opt.on { background: #3d4a26; border-color: #6d8442; color: #eaffcf; }
+.orderline { font-size: 12px; padding: 6px 0; color: var(--accent); }
+.danger { background: #3a1f1c; border-color: #6b332c; }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: #0c0f0a; }
+::-webkit-scrollbar-thumb { background: #2e372a; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #414d3a; }
+
+.leaflet-container { background: #0c0f0a; }
+.leaflet-control-attribution { font-size: 9px; background: rgba(0,0,0,.5) !important; color: #7e8a78 !important; }
+.leaflet-control-attribution a { color: #9fb094 !important; }
+
+/* ================================================================
+   TENTE DE COMMANDEMENT — pièce en CSS 3D, vue à la première personne
+   ================================================================
+   Les faces sont de vrais éléments du document : l'écran de situation
+   posé sur la table est l'interface de jeu elle-même, et les postes
+   radio sont de vraies commandes. Rien n'est redessiné.
+   Une unité vaut un centimètre ; y va vers le bas. */
+
+#tent[hidden] { display: none !important; }
+#tent {
+  position: fixed; inset: 0; z-index: 1;
+  overflow: hidden;
+  background: #060704;
+}
+#setup { z-index: 20; }
+
+#scene {
+  position: absolute; inset: 0; overflow: hidden;
+  perspective: 800px; perspective-origin: 50% 50%;
+  cursor: crosshair;
+}
+#tent.focus #scene { cursor: default; }
+/* Un pignon est un triangle, pas un panneau. */
+.pignon { clip-path: polygon(0 100%, 50% 0, 100% 100%); }
+
+#world3d {
+  position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+  transform-style: preserve-3d;
+}
+.face {
+  position: absolute; left: 0; top: 0;
+  /* on voit l'envers d'un pan de toit comme son endroit */
+  backface-visibility: visible;
+
+  /* Le décor ne se clique pas. Sans cela, les faces du moniteur et de la
+     toile interceptent le pointeur au-dessus de l'interface : l'ordre de
+     survol entre faces presque coplanaires n'est pas fiable, et l'écran de
+     situation devenait visible mais injoignable. Ce qui doit répondre le
+     redemande explicitement. */
+  pointer-events: none;
+
+  /* Nos matrices centrent la face elles-mêmes, en partant de son coin haut
+     gauche. Sans cette ligne, le navigateur applique en plus la transformation
+     autour du centre de l'élément : le centrage est compté deux fois. L'écart
+     est nul tant que la face n'est pas tournée — ce qui explique que les
+     cloisons de face et les écrans tombaient juste — mais toute face couchée
+     ou pivotée partait ailleurs. C'est ce qui démontait le mobilier. */
+  transform-origin: 0 0;
+}
+
+/* AUCUN `filter` DANS LA SCÈNE. Un filtre oblige le moteur à rendre le
+   sous-arbre dans un tampon à sa taille de mise en page, puis à agrandir ce
+   tampon avec la perspective : tout ce qui en porte un devient flou dès qu'on
+   s'en approche. Pour assombrir ou éclaircir une face, on pose un voile de
+   couleur en première couche de `background-image` ; pour une ombre portée, on
+   prend `box-shadow`, qui se peint normalement.
+
+   Voiles usuels :
+     éclaircir  linear-gradient(rgba(255,255,255,a), rgba(255,255,255,a))
+     assombrir  linear-gradient(rgba(0,0,0,a), rgba(0,0,0,a))
+
+/* ----------------------------------------------------- matières
+   Parti pris graphique : la planche de bande dessinée. Pas de dégradés
+   fondus, mais des aplats à bords francs, des contours à l'encre sur
+   chaque face, et des hachures là où la lumière ne va pas. Le grain de
+   papier est posé par-dessus toute la scène. */
+
+.face { border: 0 solid var(--encre); }
+
+/* Sol : caillebotis, planches encrées, grain de trame. */
+.sol {
+  background-color: var(--sol-h);
+  background-image:
+    repeating-linear-gradient(90deg, var(--encre) 0 2px, transparent 2px 48px),
+    repeating-linear-gradient(90deg, rgba(23,26,16,.30) 0 1px, transparent 1px 12px),
+    radial-gradient(circle, rgba(23,26,16,.26) 1px, transparent 1.4px);
+  background-size: auto, auto, 8px 8px;
+}
+
+/* Toile : lés cousus, trois valeurs franches, hachures dans le bas. */
+.paroi {
+  border-left-width: var(--trait, 1.4px);
+  background-image:
+    repeating-linear-gradient(46deg, rgba(23,26,16,.16) 0 1.4px, transparent 1.4px 8px),
+    linear-gradient(180deg,
+      var(--toile-h) 0 26%, var(--toile-m) 26% 62%,
+      var(--toile-b) 62% 88%, var(--toile-n) 88% 100%);
+}
+.pignon {
+  background-image:
+    repeating-linear-gradient(46deg, rgba(23,26,16,.24) 0 1.6px, transparent 1.6px 7px),
+    linear-gradient(180deg, var(--toile-b) 0 55%, var(--toile-n) 55% 100%);
+}
+
+/* Toit : les arceaux en travers, et la pente qui s'éclaire vers le faîtage.
+   Les deux pans sont en miroir, d'où les deux règles. */
+.toit {
+  border-top-width: var(--trait, 1.4px);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.20) 0 1.4px, transparent 1.4px 88px),
+    repeating-linear-gradient(44deg, rgba(23,26,16,.13) 0 1.4px, transparent 1.4px 9px);
+  background-color: var(--toile-b);
+}
+.toit.d { background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.20) 0 1.4px, transparent 1.4px 88px),
+    linear-gradient(90deg, var(--toit-h) 0 26%, var(--toile-m) 26% 64%, var(--toile-b) 64% 100%); }
+.toit.g { background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.20) 0 1.4px, transparent 1.4px 88px),
+    linear-gradient(270deg, var(--toit-h) 0 26%, var(--toile-m) 26% 64%, var(--toile-b) 64% 100%); }
+
+/* Bois : veines à l'encre, deux valeurs, arête claire sur le dessus. */
+.bois {
+  border-width: var(--trait, 1.4px);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.20) 0 1px, transparent 1px 15px),
+    linear-gradient(180deg, var(--bois-h) 0 34%, var(--bois-m) 34% 74%, var(--bois-b) 74% 100%);
+}
+.bois.dessus {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(23,26,16,.18) 0 1px, transparent 1px 17px),
+    linear-gradient(180deg, var(--bois-h) 0 60%, var(--bois-m) 60% 100%);
+}
+.bois.sombre {
+  background-image:
+    repeating-linear-gradient(46deg, rgba(23,26,16,.30) 0 1.5px, transparent 1.5px 7px),
+    linear-gradient(180deg, var(--bois-m) 0 40%, var(--bois-b) 40% 100%);
+}
+.bois.mat {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(90deg, var(--bois-b) 0 22%, var(--bois-m) 22% 58%, var(--bois-h) 58% 100%);
+}
+
+/* Baladeuse : l'ampoule cernée, et la flaque de lumière en anneaux francs. */
+.fil { background: var(--encre); }
+.ampoule {
+  border-radius: 50%; border-width: var(--trait, 1.4px);
+  background-image: radial-gradient(circle at 44% 36%,
+    #fffbe8 0 40%, #f8dc86 40% 66%, #d49f36 66% 100%);
+  box-shadow: 0 0 46px 16px rgba(255,214,140,.42);
+}
+/* Réflecteur de chantier : la calotte qui coiffe l'ampoule. */
+.reflecteur {
+  border-width: var(--trait, 1.4px);
+  border-radius: 50% 50% 12% 12% / 74% 74% 26% 26%;
+  background-image: linear-gradient(180deg, var(--metal-m) 0 44%, var(--metal-b) 44% 100%);
+}
+/* Le cône de lumière sous le réflecteur. */
+.cone {
+  background-image: linear-gradient(180deg,
+    rgba(255,226,158,.15) 0 26%, rgba(255,226,158,.07) 26% 58%, transparent 58%);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+}
+.halo {
+  border-radius: 50%;
+  background-image: radial-gradient(closest-side,
+    rgba(255,224,152,.30) 0 34%, rgba(255,224,152,.19) 34% 54%,
+    rgba(255,224,152,.10) 54% 74%, transparent 74%);
+}
+
+/* ----------------------------------------------------- le mobilier */
+
+/* Caisses de matériel : bois cerclé, bande au pochoir. */
+.caisse {
+  border-width: var(--trait, 1.4px);
+  background-image:
+    linear-gradient(90deg, transparent 0 12%, rgba(23,26,16,.45) 12% 15%,
+                    transparent 15% 85%, rgba(23,26,16,.45) 85% 88%, transparent 88%),
+    linear-gradient(180deg, var(--caisse-h) 0 38%, var(--caisse-m) 38% 76%, var(--caisse-b) 76% 100%);
+}
+.caisse.dessus { background-image: linear-gradient(180deg, var(--caisse-h) 0 62%, var(--caisse-m) 62% 100%); }
+.caisse.av::after, .caisse.ar::after {
+  content: ''; position: absolute; left: 22%; right: 22%; top: 40%; height: 12%;
+  background: rgba(23,26,16,.5);
+}
+
+/* Caisse de transport rigide : coque nervurée, deux fermoirs, poignée. */
+.pelicase {
+  border-width: var(--trait, 1.4px); border-radius: 4px;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.055) 0 5px, transparent 5px 21px),
+    linear-gradient(180deg, #3d423a 0 26%, #262a22 26% 72%, #171a14 72% 100%);
+}
+.pelicase.dessus {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 5px, transparent 5px 21px),
+    linear-gradient(180deg, #464c42, #2c3128);
+}
+.pelicase.av::after, .pelicase.ar::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 44%; height: 17%;
+  background: linear-gradient(90deg, transparent 0 17%, #d9b23c 17% 29%,
+              transparent 29% 71%, #d9b23c 71% 83%, transparent 83%);
+}
+.pelicase.av::before {
+  content: ''; position: absolute; left: 37%; right: 37%; top: 6%; height: 13%;
+  border: var(--trait, 1.4px) solid var(--encre); border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+}
+
+/* Caisse à munitions : tôle peinte, fermoir sur le couvercle. */
+.munitions {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg, #4d5438 0 20%, #353a25 20% 74%, #22261a 74% 100%);
+}
+.munitions.dessus { background-image: linear-gradient(180deg, #58603f, #3b4129); }
+.munitions.av::after {
+  content: ''; position: absolute; left: 38%; right: 38%; top: 8%; height: 18%;
+  background: rgba(23,26,16,.65); border-radius: 2px;
+}
+
+/* Touret de câble, couché : les joues sont rondes, la bobine est striée. */
+.touret {
+  border-width: var(--trait, 1.4px); border-radius: 5px;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(23,26,16,.38) 0 3px, transparent 3px 9px),
+    linear-gradient(180deg, #4c4129 0 28%, #332b1b 28% 100%);
+}
+.touret.fl {
+  border-radius: 50%;
+  background-image: radial-gradient(circle, #241f14 0 20%, #5b4d2f 20% 90%, #241f14 90%);
+}
+
+/* Étuis à cartes, debout. */
+.etui {
+  border-width: var(--trait, 1.4px); border-radius: 3px;
+  background-image: linear-gradient(90deg, #2b3024 0 18%, #4e5539 18% 58%, #22261b 58%);
+}
+.etui.dessus { background-image: radial-gradient(circle, #171b12 0 34%, #3d4330 34%); }
+
+/* Téléphone de campagne. */
+.tel {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg, #414734 0 24%, #292e20 24% 100%);
+}
+.tel.dessus::after {
+  content: ''; position: absolute; left: 20%; right: 20%; top: 24%; height: 48%;
+  background: #171b12; border-radius: 3px;
+}
+
+/* Ombre portée : la tache qui pose un objet au sol. */
+.ombre {
+  border-radius: 50%;
+  background: radial-gradient(ellipse,
+    rgba(8,10,5,.52) 0 38%, rgba(8,10,5,.24) 38% 68%, transparent 72%);
+}
+
+/* Bidons : nervures verticales, bouchon foncé. */
+.bidon {
+  border-width: var(--trait, 1.4px);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.34) 0 1.4px, transparent 1.4px 7px),
+    linear-gradient(180deg, var(--metal-h) 0 30%, var(--metal-m) 30% 72%, var(--metal-b) 72% 100%);
+}
+
+/* Paquetages : toile souple, coins arrondis, hachures dessous. */
+.sac {
+  border-width: var(--trait, 1.4px); border-radius: 6px;
+  background-image:
+    repeating-linear-gradient(44deg, rgba(23,26,16,.20) 0 1.4px, transparent 1.4px 8px),
+    linear-gradient(180deg, var(--toile-h) 0 32%, var(--toile-m) 32% 70%, var(--toile-b) 70% 100%);
+}
+.sable {
+  border-width: var(--trait, 1.4px); border-radius: 4px;
+  background-image:
+    repeating-linear-gradient(44deg, rgba(23,26,16,.16) 0 1.2px, transparent 1.2px 7px),
+    linear-gradient(180deg, var(--sable-h) 0 40%, var(--sable-m) 40% 78%, var(--sable-b) 78% 100%);
+}
+
+.metal, .plot, .piles {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg, var(--metal-h) 0 26%, var(--metal-m) 26% 72%, var(--metal-b) 72% 100%);
+}
+.plot.av::after {
+  content: ''; position: absolute; left: 28%; top: 30%; width: 44%; height: 26%;
+  border: 1.2px solid var(--encre); background: #2a301f;
+}
+.casque {
+  border-width: var(--trait, 1.4px); border-radius: 30% 30% 10% 10% / 44% 44% 12% 12%;
+  background-image: linear-gradient(180deg, var(--metal-h) 0 34%, var(--metal-m) 34% 100%);
+}
+.tasse, .thermos {
+  border-width: var(--trait, 1.4px); border-radius: 3px;
+  background-image: linear-gradient(90deg, var(--metal-m) 0 30%, var(--metal-h) 30% 62%, var(--metal-b) 62% 100%);
+}
+.thermos { border-radius: 4px 4px 2px 2px; }
+
+.cable { background: var(--encre); border-radius: 2px; }
+/* Gousset de charpente : la pièce oblique qui tient le mât au rampant. */
+.gousset {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg, var(--bois-m) 0 46%, var(--bois-b) 46% 100%);
+}
+
+/* Feuilles punaisées à la toile : la carte, le tableau, l'affiche. */
+.papier {
+  border-width: var(--trait, 1.4px);
+  background-color: #a9a486;
+  box-shadow: 0 3px 0 rgba(23,26,16,.45);
+}
+/* ----------------------------------------------------- le mobilier */
+
+/* Caisses de matériel : bois cerclé, bande au pochoir. */
+.caisse {
+  border-width: var(--trait, 1.4px);
+  background-image:
+    linear-gradient(90deg, transparent 0 12%, rgba(23,26,16,.45) 12% 15%,
+                    transparent 15% 85%, rgba(23,26,16,.45) 85% 88%, transparent 88%),
+    linear-gradient(180deg, var(--caisse-h) 0 38%, var(--caisse-m) 38% 76%, var(--caisse-b) 76% 100%);
+}
+.caisse.dessus { background-image: linear-gradient(180deg, var(--caisse-h) 0 62%, var(--caisse-m) 62% 100%); }
+.caisse.av::after, .caisse.ar::after {
+  content: ''; position: absolute; left: 22%; right: 22%; top: 40%; height: 12%;
+  background: rgba(23,26,16,.5);
+}
+
+/* Bidons : nervures verticales, bouchon foncé. */
+.bidon {
+  border-width: var(--trait, 1.4px);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.34) 0 1.4px, transparent 1.4px 7px),
+    linear-gradient(180deg, var(--metal-h) 0 30%, var(--metal-m) 30% 72%, var(--metal-b) 72% 100%);
+}
+
+/* Paquetages : toile souple, coins arrondis, hachures dessous. */
+.sac {
+  border-width: var(--trait, 1.4px); border-radius: 6px;
+  background-image:
+    repeating-linear-gradient(44deg, rgba(23,26,16,.20) 0 1.4px, transparent 1.4px 8px),
+    linear-gradient(180deg, var(--toile-h) 0 32%, var(--toile-m) 32% 70%, var(--toile-b) 70% 100%);
+}
+.sable {
+  border-width: var(--trait, 1.4px); border-radius: 4px;
+  background-image:
+    repeating-linear-gradient(44deg, rgba(23,26,16,.16) 0 1.2px, transparent 1.2px 7px),
+    linear-gradient(180deg, var(--sable-h) 0 40%, var(--sable-m) 40% 78%, var(--sable-b) 78% 100%);
+}
+
+.metal, .plot, .piles {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg, var(--metal-h) 0 26%, var(--metal-m) 26% 72%, var(--metal-b) 72% 100%);
+}
+.plot.av::after {
+  content: ''; position: absolute; left: 28%; top: 30%; width: 44%; height: 26%;
+  border: 1.2px solid var(--encre); background: #2a301f;
+}
+.casque {
+  border-width: var(--trait, 1.4px); border-radius: 30% 30% 10% 10% / 44% 44% 12% 12%;
+  background-image: linear-gradient(180deg, var(--metal-h) 0 34%, var(--metal-m) 34% 100%);
+}
+.tasse, .thermos {
+  border-width: var(--trait, 1.4px); border-radius: 3px;
+  background-image: linear-gradient(90deg, var(--metal-m) 0 30%, var(--metal-h) 30% 62%, var(--metal-b) 62% 100%);
+}
+.thermos { border-radius: 4px 4px 2px 2px; }
+
+.cable { background: var(--encre); border-radius: 2px; }
+/* Gousset de charpente : la pièce oblique qui tient le mât au rampant. */
+.gousset {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg, var(--bois-m) 0 46%, var(--bois-b) 46% 100%);
+}
+
+/* Feuilles punaisées à la toile : la carte, le tableau, l'affiche. */
+.papier {
+  border-width: var(--trait, 1.4px);
+  background-color: #a9a486;
+  box-shadow: 0 3px 0 rgba(23,26,16,.45);
+}
+/* La carte murale porte le Plan IGN de la zone. Le fond dessiné reste dessous :
+   il tient lieu de feuille tant que les tuiles ne sont pas arrivées. */
+.carte-murale {
+  overflow: hidden;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(23,26,16,.16) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(90deg, rgba(23,26,16,.16) 0 1px, transparent 1px 26px);
+}
+.feuille {
+  position: absolute; left: 50%; top: 50%;
+  transform-origin: 50% 50%;
+  overflow: hidden;
+  background: #e6e0cc;
+}
+.mosaique { position: absolute; }
+.tuile {
+  position: absolute; width: 256px; height: 256px;
+  /* la planche est dessinée : on ramène la carte dans sa gamme */
+  /* le voile remplace saturate/contrast/brightness : même rendu, pas de tampon */
+  box-shadow: inset 0 0 0 1000px rgba(74, 78, 49, .22);
+}
+/* Le repère de l'objectif, tracé au crayon gras par-dessus la feuille. */
+.objectif-crayon {
+  position: absolute; width: 74px; height: 74px; margin: -37px 0 0 -37px;
+  border: 7px solid rgba(178,38,28,.82);
+  border-radius: 50%;
+}
+.objectif-crayon::after {
+  content: ''; position: absolute; left: 50%; top: -26px;
+  width: 6px; height: 26px; margin-left: -3px;
+  background: rgba(178,38,28,.82);
+}
+.cartouche {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  /* on dégage les punaises des angles, sinon le titre passe dessous */
+  padding: 9px 48px;
+  background: rgba(230,224,204,.94);
+  border-top: 3px solid var(--encre);
+  font: 700 26px/1 var(--mono); letter-spacing: .10em; color: #3b3a2c;
+  white-space: nowrap; overflow: hidden;
+}
+/* Le tableau de dotation : qui est qui, sur quel réseau, à quelle fréquence. */
+.tableau { background-color: #cdc6ae; overflow: hidden; }
+.tableau-feuille {
+  position: absolute; left: 50%; top: 50%;
+  transform-origin: 50% 50%;
+  background: linear-gradient(180deg, #e6e0cc, #cdc6ae);
+  color: #2a2a22; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+/* Le bandeau de tête tient toute la largeur : c'est le titre du panneau, pas
+   une mention. À 34 px sur une feuille de 2280, il n'en couvrait qu'un
+   sixième et laissait le reste nu. */
+.tab-tete {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 26px 58px 24px; border-bottom: 5px solid var(--encre);
+  font: 800 74px/1 var(--mono); letter-spacing: .07em; color: #343326;
+  background: rgba(23,26,16,.09);
+}
+.tab-tete .sous {
+  font: 700 36px/1 var(--mono); letter-spacing: .14em; color: #6b6553;
+}
+.tab-corps { flex: 1; padding: 20px 58px 28px; overflow: hidden; }
+
+/* En-tête de réseau : la pastille de sa couleur, son code, son nom, sa
+   fréquence. Écrite une fois pour tous les éléments qui l'écoutent. */
+.tab-groupe {
+  display: grid; grid-template-columns: calc(var(--ligne, 64px) * .9) auto 1fr auto;
+  gap: calc(var(--ligne, 64px) * .4); align-items: center;
+  height: calc(var(--ligne, 64px) * 1.8); padding-top: calc(var(--ligne, 64px) * .55);
+  border-bottom: 5px solid var(--encre);
+  font: 800 calc(var(--ligne, 64px) * .72) var(--mono); color: #2c2b21;
+}
+.tab-groupe .pastille {
+  align-self: center;
+  width: calc(var(--ligne, 64px) * .62); height: calc(var(--ligne, 64px) * .62);
+  border-radius: 3px; border: 4px solid var(--encre); background: var(--net);
+}
+.tab-groupe .code { letter-spacing: .10em; }
+.tab-groupe .nom {
+  font-weight: 400; font-size: calc(var(--ligne, 64px) * .5);
+  color: #5b5641; text-transform: uppercase; letter-spacing: .05em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* La fréquence se lit d'un coup d'œil : c'est pour elle qu'on vient. */
+.tab-groupe .frq {
+  font-size: calc(var(--ligne, 64px) * .74); letter-spacing: .02em;
+  padding: calc(var(--ligne, 64px) * .08) calc(var(--ligne, 64px) * .22);
+  border: 4px solid var(--encre); border-radius: 4px;
+  background: rgba(23,26,16,.08);
+}
+
+/* Une ligne d'élément : indicatif, rôle, effectif. */
+/* Une ligne d'élément, en retrait sous l'en-tête de son réseau. L'indicatif
+   est décalé d'une pastille pour qu'on voie du premier coup à quel groupe il
+   appartient. */
+.tab-l {
+  display: grid;
+  grid-template-columns:
+    calc(var(--ligne, 64px) * .9) auto minmax(0, 1fr) auto;
+  gap: calc(var(--ligne, 64px) * .4); align-items: baseline;
+  height: var(--ligne, 64px);
+  border-bottom: 2.5px dotted rgba(23,26,16,.26);
+  font: calc(var(--ligne, 64px) * .56) var(--mono);
+}
+.tab-l .ind {
+  grid-column: 2; font-weight: 800; color: #26251c; letter-spacing: .03em;
+  font-size: calc(var(--ligne, 64px) * .6);
+}
+.tab-l .role {
+  color: #4a4832; text-transform: uppercase; letter-spacing: .03em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tab-l .eff {
+  color: #6f6a55; font-weight: 700; white-space: nowrap;
+  font-size: calc(var(--ligne, 64px) * .52);
+}
+.tab-vide { padding: 66px 18px; font: italic 75px var(--mono); color: #7a7461; }
+
+/* ----------------------------------------------------- le mobilier */
+
+/* Caisses de matériel : bois cerclé, bande au pochoir. */
+.caisse {
+  border-width: var(--trait, 1.4px);
+  background-image:
+    linear-gradient(90deg, transparent 0 12%, rgba(23,26,16,.45) 12% 15%,
+                    transparent 15% 85%, rgba(23,26,16,.45) 85% 88%, transparent 88%),
+    linear-gradient(180deg, var(--caisse-h) 0 38%, var(--caisse-m) 38% 76%, var(--caisse-b) 76% 100%);
+}
+.caisse.dessus { background-image: linear-gradient(180deg, var(--caisse-h) 0 62%, var(--caisse-m) 62% 100%); }
+.caisse.av::after, .caisse.ar::after {
+  content: ''; position: absolute; left: 22%; right: 22%; top: 40%; height: 12%;
+  background: rgba(23,26,16,.5);
+}
+
+/* Bidons : nervures verticales, bouchon foncé. */
+.bidon {
+  border-width: var(--trait, 1.4px);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.34) 0 1.4px, transparent 1.4px 7px),
+    linear-gradient(180deg, var(--metal-h) 0 30%, var(--metal-m) 30% 72%, var(--metal-b) 72% 100%);
+}
+
+/* Paquetages : toile souple, coins arrondis, hachures dessous. */
+.sac {
+  border-width: var(--trait, 1.4px); border-radius: 6px;
+  background-image:
+    repeating-linear-gradient(44deg, rgba(23,26,16,.20) 0 1.4px, transparent 1.4px 8px),
+    linear-gradient(180deg, var(--toile-h) 0 32%, var(--toile-m) 32% 70%, var(--toile-b) 70% 100%);
+}
+.sable {
+  border-width: var(--trait, 1.4px); border-radius: 4px;
+  background-image:
+    repeating-linear-gradient(44deg, rgba(23,26,16,.16) 0 1.2px, transparent 1.2px 7px),
+    linear-gradient(180deg, var(--sable-h) 0 40%, var(--sable-m) 40% 78%, var(--sable-b) 78% 100%);
+}
+
+.metal, .plot, .piles {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg, var(--metal-h) 0 26%, var(--metal-m) 26% 72%, var(--metal-b) 72% 100%);
+}
+.plot.av::after {
+  content: ''; position: absolute; left: 28%; top: 30%; width: 44%; height: 26%;
+  border: 1.2px solid var(--encre); background: #2a301f;
+}
+.casque {
+  border-width: var(--trait, 1.4px); border-radius: 30% 30% 10% 10% / 44% 44% 12% 12%;
+  background-image: linear-gradient(180deg, var(--metal-h) 0 34%, var(--metal-m) 34% 100%);
+}
+.tasse, .thermos {
+  border-width: var(--trait, 1.4px); border-radius: 3px;
+  background-image: linear-gradient(90deg, var(--metal-m) 0 30%, var(--metal-h) 30% 62%, var(--metal-b) 62% 100%);
+}
+.thermos { border-radius: 4px 4px 2px 2px; }
+
+.cable { background: var(--encre); border-radius: 2px; }
+/* Gousset de charpente : la pièce oblique qui tient le mât au rampant. */
+.gousset {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg, var(--bois-m) 0 46%, var(--bois-b) 46% 100%);
+}
+
+/* Feuilles punaisées à la toile : la carte, le tableau, l'affiche. */
+.papier {
+  border-width: var(--trait, 1.4px);
+  background-color: #a9a486;
+  box-shadow: 0 3px 0 rgba(23,26,16,.45);
+}
+/* La carte murale porte le Plan IGN de la zone. Le fond dessiné reste dessous :
+   il tient lieu de feuille tant que les tuiles ne sont pas arrivées. */
+.carte-murale {
+  overflow: hidden;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(23,26,16,.16) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(90deg, rgba(23,26,16,.16) 0 1px, transparent 1px 26px);
+}
+.feuille {
+  position: absolute; left: 50%; top: 50%;
+  transform-origin: 50% 50%;
+  overflow: hidden;
+  background: #e6e0cc;
+}
+.mosaique { position: absolute; }
+.tuile {
+  position: absolute; width: 256px; height: 256px;
+  /* la planche est dessinée : on ramène la carte dans sa gamme */
+  /* le voile remplace saturate/contrast/brightness : même rendu, pas de tampon */
+  box-shadow: inset 0 0 0 1000px rgba(74, 78, 49, .22);
+}
+/* Le repère de l'objectif, tracé au crayon gras par-dessus la feuille. */
+.objectif-crayon {
+  position: absolute; width: 74px; height: 74px; margin: -37px 0 0 -37px;
+  border: 7px solid rgba(178,38,28,.82);
+  border-radius: 50%;
+}
+.objectif-crayon::after {
+  content: ''; position: absolute; left: 50%; top: -26px;
+  width: 6px; height: 26px; margin-left: -3px;
+  background: rgba(178,38,28,.82);
+}
+.cartouche {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  /* on dégage les punaises des angles, sinon le titre passe dessous */
+  padding: 9px 48px;
+  background: rgba(230,224,204,.94);
+  border-top: 3px solid var(--encre);
+  font: 700 26px/1 var(--mono); letter-spacing: .10em; color: #3b3a2c;
+  white-space: nowrap; overflow: hidden;
+}
+.affiche {
+  background-image:
+    linear-gradient(180deg, rgba(178,58,40,.75) 0 16%, transparent 16%),
+    repeating-linear-gradient(0deg, transparent 0 9px, rgba(23,26,16,.34) 9px 10.2px, transparent 10.2px 15px);
+}
+.punaise {
+  border-radius: 50%; border-width: var(--trait, 1.4px);
+  background: #c9483a;
+}
+
+/* ----------------------------------------------------- le moniteur */
+
+.carcasse {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg, var(--metal-h) 0 22%, var(--metal-m) 22% 70%, var(--metal-b) 70% 100%);
+}
+.vitre { background: #05070c; }
+
+/* La dalle porte l'interface de jeu, exactement à sa taille — d'où l'absence
+   de `overflow: hidden` : il n'y a rien à rogner, et il empêchait le pointeur
+   de descendre jusqu'à l'interface. C'est ce qui rendait impossible de donner
+   un ordre depuis le poste de situation. */
+.dalle { background: #05070c; }
+#game {
+  position: absolute; left: 50%; top: 50%;
+  transform-origin: 50% 50%;
+  /* Pas de `will-change: transform` ici : il fige la définition à laquelle le
+     moteur rend l'interface, et l'écran restait flou tant qu'on n'était pas
+     installé devant. Sans lui, la définition est reprise quand on s'approche. */
+}
+
+.reflet {
+  pointer-events: none; transition: opacity .35s;
+  background-image:
+    linear-gradient(118deg, rgba(255,255,255,.08) 0 22%, transparent 22% 54%,
+                             rgba(255,255,255,.04) 54% 68%, transparent 68%),
+    radial-gradient(ellipse 88% 82% at 50% 44%, transparent 40%, rgba(0,0,0,.6) 100%);
+}
+.plaque-mon {
+  display: flex; align-items: center; justify-content: center;
+  border-width: var(--trait, 1.4px);
+  font: 700 7px var(--mono); letter-spacing: .24em; color: #79836a;
+  background-image: linear-gradient(180deg, var(--metal-m) 0 50%, var(--metal-b) 50% 100%);
+}
+
+#btn-step-back {
+  display: none; align-items: center; gap: 4px;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--dim);
+  border-radius: 4px; padding: 3px 10px; font-size: 11px; letter-spacing: .06em;
+}
+#btn-step-back:hover { border-color: var(--accent); color: var(--accent); }
+body.leaned #btn-step-back { display: inline-flex; }
+
+/* ----------------------------------------------------- le papier
+
+   Grain, trame et cerne : ce qui achève de faire une planche plutôt qu'une
+   image de synthèse. Posé au-dessus de la scène, sous l'affichage. */
+
+#grain {
+  position: absolute; inset: 0; z-index: 6; pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: .5;
+  transition: opacity .4s;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+#grain::after {
+  content: ''; position: absolute; inset: 0;
+  mix-blend-mode: normal;
+  background:
+    radial-gradient(ellipse 86% 78% at 50% 47%, transparent 34%, rgba(10,12,7,.55) 100%);
+}
+/* Installé à un poste, on regarde un écran, plus une case de planche. */
+#tent.focus #grain { opacity: 0; }
+
+/* ----------------------------------------------------- le râtelier
+
+   Deux matériels, deux silhouettes : le PRC-117G est un coffret couché,
+   écran au centre, connecteurs et rotacteur autour, poignées sur les
+   flancs. Le PRC-152 est un portatif debout — grille de haut-parleur,
+   écran, clavier, et la batterie qui déborde en pied.
+
+   Au repos, écran et clavier sont éteints : verts sombres, presque
+   illisibles. Dès qu'on parle sur le réseau, le rétroéclairage s'allume
+   — la dalle passe au vert clair et les légendes des touches virent au
+   vert vif. C'est ce qui dit, d'un coup d'œil sur la table, quel poste
+   est en train de recevoir. */
+
+.cahierpos { overflow: visible; }
+/* Les postes ne répondent qu'une fois le chef installé devant eux : en
+   marchant, la souris est prise par le regard et un clic ne doit pas basculer
+   un interrupteur au passage. */
+
+
+.rack-holder, .cahierpos .cahier {
+  position: absolute; left: 50%; top: 50%;
+  transform-origin: 50% 50%;
+}
+
+/* L'atelier : hors de l'écran, mais mis en page. C'est là que les six faces
+   prennent leurs dimensions avant d'aller se poser chacune sur son coffret,
+   et c'est là qu'elles reviennent se ranger quand le chef les prend en main. */
+.rack-atelier {
+  position: absolute; left: -24000px; top: 0;
+  width: 2400px; height: 1px;
+  visibility: hidden; pointer-events: none;
+}
+#loupe .rack-atelier, #loupe #rack { visibility: visible; }
+
+/* Les six gardent leur taille : en largeur fixe, le rang les comprimait et la
+   face mesurée ici n'était plus celle qu'on pose sur le coffret. */
+/* Pris en main, les six se rangent comme sur la table : les deux coffrets
+   au-dessus, les quatre portatifs en dessous. Alignés sur une seule ligne,
+   le rang faisait deux mètres trente de large et la loupe devait le réduire
+   de moitié — les claviers n'étaient plus lisibles. */
+#rack {
+  display: grid; width: max-content;
+  grid-template-columns: repeat(4, max-content);
+  gap: 34px 40px; align-items: center; justify-items: center;
+}
+#rack > .manpack { grid-column: span 2; }
+.poste-radio {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  transition: opacity .25s;
+}
+/* L'ombre portée n'a de sens qu'à la loupe : sur son coffret, le poste a la
+   sienne, faite par l'ombrage de contact de ses faces. */
+#rack > .poste-radio { box-shadow: 0 30px 48px -12px rgba(0,0,0,.7); }
+
+/* Deux fois plus large que haute pour le coffret, trois fois plus haute que
+   large pour le portatif : les proportions des vrais matériels. */
+.poste-radio.manpack { width: 680px; }
+.poste-radio.portatif { width: 200px; }
+
+/* Posée sur son coffret, la face emplit sa propre boîte. */
+.radiopos > .radio-holder > .poste-radio { width: 100%; }
+.radio-holder {
+  position: absolute; left: 50%; top: 50%;
+  transform-origin: 50% 50%;
+}
+.radiopos { overflow: visible; }
+/* Les postes ne répondent qu'une fois le chef installé devant eux. */
+#tent.focus[data-poste="radio"] .radiopos { pointer-events: auto; }
+
+.corps {
+  width: 100%;
+  border: 6px solid var(--encre); border-radius: 12px;
+  background: linear-gradient(180deg, #4b5140 0 18%, #3a402f 18% 74%, #2a2f21 74% 100%);
+  transition: box-shadow .2s;
+}
+
+/* ---- connecteurs, communs aux deux postes ---- */
+
+.prise { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.prise i {
+  display: block; border-radius: 50%; border: 4.5px solid var(--encre);
+  background: radial-gradient(circle at 36% 30%, #6d7460 0 40%, #23271c 70%);
+}
+.prise i.multi { background: radial-gradient(circle at 36% 30%, #98a081 0 34%, #2b3023 66%); }
+.prise.petite i { width: 33px; height: 33px; }
+.prise.moyenne i { width: 39px; height: 39px; }
+.prise.grosse i {
+  width: 57px; height: 57px;
+  background: radial-gradient(circle at 34% 28%, #d3d8bd 0 30%, #767c62 62%, #23271c);
+}
+.prise.audio i {
+  width: 63px; height: 63px;
+  background: radial-gradient(circle at 34% 28%, #a9d9ee 0 26%, #3f7690 58%, #16232c);
+}
+.prise em { font: 700 15px/1.1 var(--mono); color: #b3bd9b; letter-spacing: .02em; }
+.prise u { font: 700 15px/1.1 var(--mono); color: #838d70; text-decoration: none; }
+
+/* ---- l'écran ---- */
+
+.lcd {
+  border: 4.5px solid #0d160f; border-radius: 6px;
+  padding: 9px 12px; overflow: hidden;
+  background: #1d2a1c;
+  font: 700 21px/1.3 var(--mono); color: #5d8a5f;
+  transition: background .16s, color .16s, box-shadow .16s;
+}
+.lcd .l1 { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+.lcd .l2 {
+  font-weight: 400; font-size: 18px; opacity: .78;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lcd .l3 {
+  font-weight: 400; font-size: 19.2px; margin-top: 3px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.lcd .rx {
+  border: 3px solid currentColor; border-radius: 3px;
+  padding: 0 6px; font-size: 16.2px; opacity: .55;
+}
+
+/* ---- le clavier ---- */
+
+.clavier { display: grid; gap: 6px; }
+.clavier .t {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 3px solid #1d2318; border-radius: 6px;
+  background: linear-gradient(180deg, #3c4232 0 46%, #262b1d 46% 100%);
+  font: 700 18px/1 var(--mono); color: #79805f;
+  padding: 6px 0; font-style: normal;
+  transition: color .16s, text-shadow .16s, border-color .16s;
+}
+.clavier .t b { font-weight: 800; }
+.clavier .t u { text-decoration: none; font-size: 12px; opacity: .8; }
+.clavier .t s { text-decoration: none; font-size: 10.8px; opacity: .7; }
+.clavier .t.large { justify-content: space-between; padding: 9px 0; }
+
+/* ---- PRC-117G : le coffret ---- */
+
+/* Une seule rangée, de gauche à droite : rotacteur et embases, écran,
+   clavier, puis les embases de droite et les commandes du poste. */
+.manpack .corps {
+  padding: 15px 17px; display: grid; gap: 14px; align-items: stretch;
+  grid-template-columns: 92px minmax(0, 1fr) 196px 104px;
+}
+.manpack .col { display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+.manpack .prises { display: flex; justify-content: space-around; align-items: flex-end; gap: 8px; }
+.manpack .bloc-ecran { display: flex; flex-direction: column; justify-content: center; gap: 7px; }
+.manpack .marque { display: flex; align-items: baseline; justify-content: space-between; }
+.manpack .marque b { font: 800 19.5px var(--mono); color: #e9eedd; letter-spacing: .04em; }
+.manpack .marque span { font: 700 15px var(--mono); color: #aeb897; letter-spacing: .10em; }
+
+.manpack .rotacteur {
+  display: grid; grid-template-columns: 44px 1fr; grid-template-rows: repeat(5, 1fr);
+  align-items: center; height: 108px;
+}
+.manpack .rotacteur .axe {
+  grid-column: 1; grid-row: 1 / 6; width: 42px; height: 42px; align-self: center;
+  border-radius: 50%; border: 4.5px solid var(--encre);
+  background: radial-gradient(circle at 34% 28%, #5f6650 0 38%, #1d211a 72%);
+}
+.manpack .rotacteur em {
+  grid-column: 2; font: 700 12.6px/1 var(--mono); color: #c3cca7; letter-spacing: .04em;
+}
+
+.manpack .clavier.c117 { grid-template-columns: repeat(5, 1fr); }
+.manpack .clavier.c117 .vol { grid-column: 1; grid-row: 1 / 3; }
+.manpack .clavier.c117 .pre { grid-column: 5; grid-row: 1 / 3; }
+
+/* poignées de portage */
+.anse {
+  position: absolute; top: 16%; width: 27px; height: 46%;
+  border: 7.5px solid #1b1f15; border-radius: 18px;
+  background: transparent;
+}
+.anse.g { left: -21px; border-right: 0; border-radius: 18px 0 0 18px; }
+.anse.d { right: -21px; border-left: 0; border-radius: 0 18px 18px 0; }
+
+/* ---- PRC-152 : le portatif ---- */
+
+.portatif .whip {
+  width: 9px; height: 120px; border-radius: 6px; align-self: flex-end; margin-right: 36px;
+  background: linear-gradient(180deg, rgba(190,200,160,.10), #4c5339 58%, #2a2e20);
+  transform: rotate(2.5deg); transform-origin: bottom;
+}
+.portatif .capot {
+  width: 86%; height: 21px; border: 6px solid var(--encre); border-bottom: 0;
+  border-radius: 9px 9px 0 0; background: #2f3527;
+  display: flex; align-items: center; justify-content: center; gap: 15px;
+}
+.portatif .capot .pr {
+  width: 15px; height: 15px; border-radius: 50%; background: #171b12;
+}
+.portatif .corps {
+  padding: 13px 11px 15px; display: flex; flex-direction: column; gap: 9px;
+  border-radius: 10px;
+}
+
+.portatif .grille { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4.5px; }
+.portatif .grille i {
+  height: 12px; border-radius: 3px; background: #1c2116;
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.06);
+}
+.portatif .bandeau {
+  font: 700 12.6px var(--mono); color: #cfd7b8; letter-spacing: .05em; text-align: center;
+}
+.portatif .clavier.c152 { grid-template-columns: repeat(4, 1fr); }
+.portatif .signature {
+  font: 800 15px var(--mono); color: #e9eedd; letter-spacing: .06em; text-align: center;
+}
+.portatif .batterie {
+  width: 100%; height: 138px; margin-top: -6px;
+  border: 6px solid var(--encre); border-radius: 0 0 12px 12px;
+  background: linear-gradient(180deg, #3a402f 0 30%, #2a2f21 30% 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.portatif .batterie .etiquette {
+  width: 76%; height: 66px; border: 3px solid #7d7a64; border-radius: 3px;
+  background:
+    repeating-linear-gradient(0deg, #b9b49c 0 6px, #cfcab0 6px 12px);
+}
+
+/* ---- les commandes du chef ---- */
+
+.commandes { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 6px; }
+.switch {
+  position: relative; width: 84px; height: 42px; padding: 0;
+  display: flex; align-items: center; justify-content: flex-end;
+  border-radius: 9px; border: 3px solid #464c37;
+  background: linear-gradient(180deg, #242818, #14170f);
+}
+.switch .rocker {
+  position: absolute; left: 4.5px; top: 4.5px; width: 30px; height: 27px; border-radius: 6px;
+  background: linear-gradient(180deg, #8fe0a0, #3f7a4d);
+  box-shadow: 0 0 18px rgba(143,224,160,.55);
+  transition: left .14s, background .14s, box-shadow .14s;
+}
+.switch .txt { padding-right: 9px; font: 700 16.5px var(--mono); letter-spacing: .04em; color: #8fe0a0; }
+.off .switch .rocker { left: 45px; background: linear-gradient(180deg, #5c6150, #2c3025); box-shadow: none; }
+.off .switch .txt { color: #7e8671; }
+
+.knob {
+  position: relative; width: 60px; height: 60px; border-radius: 50%; cursor: ns-resize;
+  background: radial-gradient(circle at 38% 28%, #575e44, #21251a 72%);
+  border: 3px solid #575e44; touch-action: none;
+  box-shadow: 0 3px 12px rgba(0,0,0,.65), inset 0 3px 0 rgba(255,255,255,.13);
+}
+.knob:focus-visible { outline: 6px solid var(--accent); outline-offset: 6px; }
+.knob .cap {
+  position: absolute; inset: 12px; border-radius: 50%;
+  background: radial-gradient(circle at 36% 28%, #4d543b, #1b1f14);
+}
+.knob .mark {
+  position: absolute; left: 50%; top: 6px; width: 4.8px; height: 21px; border-radius: 3px;
+  background: var(--net); box-shadow: 0 0 12px var(--net);
+  transform-origin: 50% 24px;
+  transform: translateX(-50%) rotate(var(--deg, 0deg));
+}
+.vol-val { min-width: 42px; text-align: right; font: 700 19.5px var(--mono); color: #aab494; }
+
+/* ---- poste coupé : c'est l'écran qui s'éteint ----
+
+   Un poste hors service n'est pas un poste grisé : son boîtier reste ce qu'il
+   est sur la table, seule la dalle devient noire et n'affiche plus rien. La
+   sérigraphie dit toujours quel réseau il tient, et un repère rouge compte ce
+   qu'on rate — sinon couper une radio la ferait disparaître de l'attention en
+   même temps que de l'écoute. */
+
+.poste-radio.off .lcd {
+  background: #0a0e0a;
+  border-color: #080b07;
+  box-shadow: inset 0 3px 9px rgba(0,0,0,.9);
+}
+.poste-radio.off .lcd > * { visibility: hidden; }
+
+/* sérigraphie du boîtier : lisible allumé comme éteint */
+.serigraphie {
+  display: flex; align-items: baseline; justify-content: center; gap: 9px;
+  font: 700 13.8px/1.2 var(--mono); color: #aeb897; letter-spacing: .03em;
+}
+.serigraphie b { color: var(--net); font-weight: 800; }
+.serigraphie .manque { color: #ff6b5e; font-weight: 800; }
+
+/* ---- QUELQU'UN PARLE : le rétroéclairage s'allume ---- */
+
+.poste-radio.trafic .corps {
+  box-shadow: 0 0 42px -6px var(--net), inset 0 0 0 3px var(--net);
+}
+.poste-radio.trafic .lcd {
+  background: #b8d94b;
+  color: #16220f;
+  box-shadow: 0 0 36px rgba(184,217,75,.55), inset 0 0 18px rgba(255,255,255,.35);
+}
+.poste-radio.trafic .lcd .l2 { opacity: .85; }
+.poste-radio.trafic .lcd .rx {
+  opacity: 1; background: #16220f; color: #b8d94b; border-color: #16220f;
+}
+.poste-radio.trafic .clavier .t {
+  color: #7dff9f;
+  border-color: #2c5c3a;
+  text-shadow: 0 0 15px rgba(125,255,159,.9), 0 0 36px rgba(125,255,159,.45);
+}
+.poste-radio.trafic .bandeau,
+.poste-radio.trafic .signature { color: #b6ffca; text-shadow: 0 0 18px rgba(125,255,159,.6); }
+
+/* ----------------------------------------------------- main courante */
+
+.cahier {
+  width: 1080px; padding: 27px 33px 33px; border-radius: 6px;
+  background: linear-gradient(180deg, #e9e3d0, #cdc6ae);
+  color: #2a2a22; font: 30px/1.35 var(--mono);
+  box-shadow: 0 42px 78px rgba(0,0,0,.6);
+}
+.cahier-tete {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 24px;
+  margin-bottom: 15px; padding-bottom: 9px; border-bottom: 3px solid #b4ad94;
+  font: 700 27px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: #5b5641;
+}
+#perdu { color: #a5341f; letter-spacing: .04em; text-transform: none; }
+#perdu[hidden] { display: none; }
+.mc {
+  display: grid; grid-template-columns: 120px 102px 186px 1fr; gap: 15px;
+  padding: 4.5px 0; border-bottom: 3px dotted rgba(0,0,0,.13);
+}
+.mc .h { color: #6c6653; }
+.mc .n { font-weight: 700; }
+.mc .f, .mc .x { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc .f { font-weight: 700; color: #3d3a2c; }
+.mc.vide { display: block; color: #7b7562; font-style: italic; border: 0; }
+
+/* ----------------------------------------------------- l'affichage tête haute */
+
+/* ----------------------------------------------------- le personnage
+
+   Un squelette d'os vides, chacun articulé sur son point d'attache, et des
+   volumes accrochés dessus. La tenue est une NWU en AOR2 : le motif est
+   fabriqué en SVG au chargement et partagé par tous les corps. */
+
+.avatar, .os {
+  position: absolute; left: 0; top: 0; width: 0; height: 0;
+  transform-style: preserve-3d; transform-origin: 0 0;
+  pointer-events: none;
+}
+
+/* Le treillis. Le motif est assez serré pour se lire de près sans devenir
+   une bouillie de loin — c'est tout l'objet d'un camouflage numérique. */
+.treillis {
+  border-width: var(--trait, 1.2px);
+  background-image: var(--camo);
+  background-size: 26px 26px;
+}
+.treillis.dessus {
+  background-image: linear-gradient(rgba(255,255,255,.15), rgba(255,255,255,.15)), var(--camo);
+}
+.treillis.ar {
+  background-image: linear-gradient(rgba(0,0,0,.20), rgba(0,0,0,.20)), var(--camo);
+}
+.treillis.fl {
+  background-image: linear-gradient(rgba(0,0,0,.09), rgba(0,0,0,.09)), var(--camo);
+}
+.torse.av {
+  background-image: linear-gradient(rgba(255,255,255,.05), rgba(255,255,255,.05)), var(--camo);
+}
+/* Les manches se détachent du buste : même tissu, ombre propre. Sans cet
+   écart de valeur, bras et vareuse ne forment qu'un seul bloc large. */
+.treillis.bras {
+  background-image: linear-gradient(rgba(0,0,0,.22), rgba(0,0,0,.22)), var(--camo);
+}
+.treillis.bras.ar {
+  background-image: linear-gradient(rgba(0,0,0,.40), rgba(0,0,0,.40)), var(--camo);
+}
+.treillis.bras.fl {
+  background-image: linear-gradient(rgba(0,0,0,.31), rgba(0,0,0,.31)), var(--camo);
+}
+
+/* Gilet porte-plaques, par-dessus le treillis. */
+.gilet {
+  border-width: var(--trait, 1.2px); border-radius: 3px;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.30) 0 1.5px, transparent 1.5px 9px),
+    linear-gradient(180deg, #5a5f42 0 30%, #444936 30% 100%);
+}
+/* Casquette huit pointes : calotte plate, arêtes marquées, courte visière. */
+.av-couvre {
+  border-width: var(--trait, 1.2px); border-radius: 2px;
+  background-image: linear-gradient(rgba(0,0,0,.07), rgba(0,0,0,.07)), var(--camo);
+  background-size: auto, 20px 20px;
+}
+.av-couvre.dessus {
+  background-image: linear-gradient(rgba(255,255,255,.07), rgba(255,255,255,.07)), var(--camo);
+}
+.av-couvre.ar {
+  background-image: linear-gradient(rgba(0,0,0,.22), rgba(0,0,0,.22)), var(--camo);
+}
+.av-visiere {
+  border-width: var(--trait, 1.2px); border-radius: 2px 2px 7px 7px;
+  background-image: linear-gradient(rgba(0,0,0,.30), rgba(0,0,0,.30)), var(--camo);
+  background-size: auto, 20px 20px;
+}
+
+/* Poches et patte de boutonnage : les coutures qui font lire une vareuse. */
+.poche {
+  border-width: var(--trait, 1.2px); border-radius: 1.5px;
+  background-image: linear-gradient(rgba(0,0,0,.14), rgba(0,0,0,.14)), var(--camo);
+  background-size: auto, 26px 26px;
+}
+.poche.poitrine { border-radius: 1.5px 1.5px 3px 3px; }
+.patte {
+  border-width: 0;
+  background: linear-gradient(90deg, rgba(23,26,16,.5), rgba(23,26,16,.16), rgba(23,26,16,.5));
+}
+.peau {
+  border-width: var(--trait, 1.2px);
+  background-image: linear-gradient(180deg, #a8825e 0 40%, #8c6a49 40% 100%);
+}
+.peau.visage { border-radius: 26% 26% 34% 34% / 30% 30% 40% 40%; }
+.gant {
+  border-width: var(--trait, 1.2px); border-radius: 3px;
+  background-image: linear-gradient(180deg, #35392a, #22261a);
+}
+/* Rangers noires, montantes, à œillets. */
+.rangers {
+  border-width: var(--trait, 1.2px); border-radius: 3px 3px 5px 5px;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.07) 0 1.5px, transparent 1.5px 7px),
+    linear-gradient(180deg, #23241f 0 56%, #131410 56% 100%);
+}
+.rangers.dessus { background-image: linear-gradient(180deg, #2c2d27, #1a1b16); }
+.ombre-corps {
+  border-radius: 50%;
+  background: radial-gradient(ellipse,
+    rgba(8,10,5,.5) 0 34%, rgba(8,10,5,.22) 34% 66%, transparent 70%);
+}
+
+/* ----------------------------------------------------- la loupe
+
+   Ce qu'on prend en main sort du volume et vient se poser à plat devant
+   l'œil. C'est la seule façon d'obtenir un panneau net : dans la scène, le
+   moteur le rend à l'échelle où il est écrit dans la pièce — quelques
+   centimètres — puis la perspective l'agrandit d'un facteur dix quand on
+   s'en approche. Ici, il n'est que réduit, jamais grossi. */
+
+#loupe {
+  position: absolute; inset: 0; z-index: 7; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 45%, rgba(10,12,7,.72), rgba(6,8,4,.92));
+
+}
+#loupe[hidden] { display: none; }
+/* Centré à la main : une grille recale au début tout enfant plus large
+   qu'elle, et le panneau partait sur le côté. */
+#loupe > * {
+  position: absolute !important;
+  left: 50% !important; top: 50% !important;
+  margin: 0 !important;
+  transform: translate(-50%,-50%) scale(var(--zoom, 1)) !important;
+  transform-origin: 50% 50%;
+  box-shadow: 0 30px 90px rgba(0,0,0,.8);
+}
+
+#hud { position: absolute; inset: 0; z-index: 8; pointer-events: none; transition: opacity .3s; }
+/* Installé à un poste, il ne reste que le rappel de la sortie. */
+#tent.focus #reticule, #tent.focus #invite, #tent.focus #aide-dep { opacity: 0; }
+
+#reticule {
+  position: absolute; left: 50%; top: 50%; width: 7px; height: 7px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  border: 1px solid rgba(230,240,210,.5); background: rgba(230,240,210,.16);
+  opacity: 0; transition: opacity .2s;
+}
+#tent.locked #reticule { opacity: 1; }
+
+#prompt {
+  position: absolute; left: 50%; top: 60%; transform: translateX(-50%);
+  background: rgba(10,13,9,.85); border: 1px solid var(--accent); border-radius: 4px;
+  padding: 6px 14px; font-size: 13px; color: var(--accent); white-space: nowrap;
+  text-shadow: 0 1px 4px #000;
+}
+#prompt[hidden] { display: none; }
+#tent.focus #prompt { top: auto; bottom: 20px; border-color: var(--line); color: var(--dim); }
+
+#invite {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  background: rgba(10,13,9,.78); border: 1px solid var(--line); border-radius: 6px;
+  padding: 12px 24px; font-size: 14px; color: var(--ink); letter-spacing: .06em;
+  transition: opacity .25s;
+}
+#tent.locked #invite { opacity: 0; }
+
+#aide-dep {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  color: var(--dim); font-size: 12px; text-shadow: 0 2px 8px #000; white-space: nowrap;
+  transition: opacity .5s;
+}
+#aide-dep b { color: var(--accent); font-weight: 600; }
+/* Une fois le chef installé à un poste, le rappel des touches s'efface. */
+#tent.rode #aide-dep { opacity: .3; }
+
+/* ----------------------------------------------- la charpente et le matériel
+
+   Tout ce qui suit est posé par `charpente()` et `materiel()`. Les pièces de
+   bois sont peintes dans le sens de leur fil : une poutre dans la longueur de
+   la tente reçoit ses veines en long, un poteau les reçoit en travers. Sans
+   cela l'œil lit un placage, pas une charpente. */
+
+.charpente {
+  border-width: var(--trait, 1px);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.22) 0 1px, transparent 1px 21px),
+    linear-gradient(180deg, var(--bois-h) 0 28%, var(--bois-m) 28% 70%, var(--bois-b) 70% 100%);
+}
+/* Le dessous d'une poutre ne prend pas la lumière de la lampe : il reste la
+   valeur la plus basse de la pièce, sinon la poutre paraît transparente. */
+.charpente.dessous {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.34) 0 1px, transparent 1px 19px),
+    linear-gradient(180deg, var(--bois-b) 0 100%);
+}
+.charpente.dessus {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.16) 0 1px, transparent 1px 23px),
+    linear-gradient(180deg, var(--bois-h) 0 64%, var(--bois-m) 64% 100%);
+}
+/* Faîtage et pannes : vues de biais, elles n'ont qu'une arête éclairée. */
+.charpente.faitiere.av, .charpente.faitiere.ar,
+.charpente.panne.av, .charpente.panne.ar {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.26) 0 1px, transparent 1px 25px),
+    linear-gradient(180deg, var(--bois-m) 0 34%, var(--bois-b) 34% 100%);
+}
+/* Chevrons et poteaux : le fil court en travers de la pièce. */
+.charpente.chevron, .charpente.poteau, .charpente.huisserie {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(23,26,16,.24) 0 1px, transparent 1px 15px),
+    linear-gradient(90deg, var(--bois-b) 0 20%, var(--bois-m) 20% 56%, var(--bois-h) 56% 100%);
+}
+/* Le dessous du chevron : la face qu'on voit quand on lève la tête. */
+.charpente.chevron.bas {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(23,26,16,.30) 0 1px, transparent 1px 17px),
+    linear-gradient(90deg, var(--bois-b) 0 40%, var(--bois-m) 40% 100%);
+}
+
+/* Bavette : le bas de toile rabattu et lesté, plus sombre et plus sale que le
+   reste du lé. C'est elle qui assoit la paroi sur le plancher. */
+.bavette {
+  border-top-width: var(--trait, 1.2px);
+  background-image:
+    repeating-linear-gradient(46deg, rgba(23,26,16,.30) 0 1.6px, transparent 1.6px 6px),
+    linear-gradient(180deg, var(--toile-b) 0 34%, var(--toile-n) 34% 100%);
+}
+
+/* Rabat d'entrée : deux pans de toile rapprochés, et les lacets qui les
+   ferment. Il n'ouvre pas : on ne voit jamais le dehors. */
+.rabat {
+  border-width: calc(var(--trait, 1.4px) * 2);
+  background-image:
+    /* le recouvrement : le pan droit passe par-dessus le gauche, et son bord
+       cousu porte l'ombre qui fait lire la fermeture */
+    linear-gradient(90deg, transparent 0 46%, rgba(0,0,0,.42) 46% 50%,
+                    rgba(255,255,255,.07) 50% 56%, transparent 56% 100%),
+    /* la couture périphérique, à deux centimètres du bord */
+    linear-gradient(90deg, transparent 0 3%, rgba(23,26,16,.34) 3% 4%,
+                    transparent 4% 96%, rgba(23,26,16,.34) 96% 97%, transparent 97%),
+    linear-gradient(180deg, transparent 0 2%, rgba(23,26,16,.34) 2% 2.8%,
+                    transparent 2.8% 97.2%, rgba(23,26,16,.34) 97.2% 98%, transparent 98%),
+    repeating-linear-gradient(90deg, rgba(23,26,16,.18) 0 1.6px, transparent 1.6px 30px),
+    linear-gradient(180deg, var(--toile-m) 0 24%, var(--toile-b) 24% 70%, var(--toile-n) 70% 100%);
+  box-shadow: inset 0 0 44px rgba(0,0,0,.42);
+}
+/* Les brides qui ferment le rabat : une sangle claire, sa boucle au milieu. */
+.lacet {
+  border-width: var(--trait, .9px); border-radius: 3px;
+  background-image:
+    linear-gradient(90deg, transparent 0 42%, rgba(23,26,16,.65) 42% 58%, transparent 58% 100%),
+    linear-gradient(180deg, #cfc49c 0 42%, #8e8568 42% 100%);
+}
+
+/* ---- Râtelier : les armes en appui -------------------------------------- */
+.arme { border-width: var(--trait, .8px); background-color: #23271a; }
+.arme.crosse {
+  border-radius: 2px 2px 4px 4px;
+  background-image: linear-gradient(90deg, #1b1f14 0 34%, #343a26 34% 72%, #22271a 72% 100%);
+}
+.arme.boitier {
+  background-image: linear-gradient(90deg, #171a11 0 30%, #2c3220 30% 70%, #191d13 70% 100%);
+}
+.arme.chargeur {
+  border-radius: 2px;
+  background-image: linear-gradient(90deg, #14170f 0 40%, #262b1b 40% 100%);
+}
+.arme.canon {
+  background-image: linear-gradient(90deg, #0f1209 0 38%, #2a3020 38% 66%, #14170f 66% 100%);
+}
+.arme.lunette {
+  border-radius: 3px;
+  background-image: linear-gradient(180deg, #2e3422 0 40%, #15180e 40% 100%);
+}
+
+/* ---- Portemanteau : casques lourds pendus à la traverse ------------------ */
+.casque-lourd {
+  border-width: var(--trait, 1.2px);
+  border-radius: 42% 42% 16% 16% / 58% 58% 18% 18%;
+  background-image:
+    radial-gradient(circle, rgba(23,26,16,.22) .9px, transparent 1.3px),
+    linear-gradient(180deg, #4f5538 0 36%, #3c4229 36% 78%, #2a2f1d 78% 100%);
+  background-size: 7px 7px, auto;
+}
+.casque-lourd.dessus {
+  background-image: linear-gradient(180deg, #5c6240 0 60%, #454b2f 60% 100%);
+}
+.gilet.plastron {
+  background-image: linear-gradient(180deg, #52583c 0 26%, #3c422d 26% 100%);
+}
+/* Bretelles et ceinture : même tissu, sanglé plus serré, donc plus sombre. */
+.gilet.bretelle, .gilet.ceinture {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(23,26,16,.34) 0 1.4px, transparent 1.4px 11px),
+    linear-gradient(180deg, #3f4530 0 40%, #2d3123 40% 100%);
+}
+.casque-lourd.jugulaire {
+  border-radius: 2px;
+  background-image: linear-gradient(180deg, #2a2e1f 0 46%, #1b1e14 46% 100%);
+}
+
+/* ---- Poêle à bois : fonte noire, porte en fonte, conduit en tôle --------- */
+.poele {
+  border-width: var(--trait, 1.4px);
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.26) 0 1.2px, transparent 1.2px 13px),
+    linear-gradient(90deg, #30332c 0 22%, #41453b 22% 58%, #23261f 58% 100%);
+}
+.poele.socle {
+  background-image: linear-gradient(180deg, #3a3e33 0 34%, #1e2119 34% 100%);
+}
+.poele.plaque {
+  background-image: linear-gradient(180deg, #4a4e41 0 40%, #2c2f26 40% 100%);
+}
+.poele.plaque.dessus {
+  background-image:
+    radial-gradient(circle at 36% 44%, rgba(255,214,140,.22) 0 26%, transparent 27%),
+    linear-gradient(180deg, #55594a 0 52%, #363a2e 52% 100%);
+}
+/* La porte entrouverte : la braise qu'on voit par la grille. */
+.poele.porte {
+  border-width: var(--trait, 1.2px); border-radius: 2px;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.62) 0 2px, transparent 2px 7px),
+    radial-gradient(ellipse at 50% 62%, #e08a34 0 26%, #8d4a18 26% 54%, #2a2a20 54% 100%);
+  box-shadow: 0 0 26px 7px rgba(224,138,52,.30);
+}
+.conduit {
+  border-width: var(--trait, 1.1px);
+  background-image:
+    repeating-linear-gradient(0deg, rgba(23,26,16,.30) 0 1.2px, transparent 1.2px 34px),
+    linear-gradient(90deg, var(--metal-b) 0 24%, var(--metal-h) 24% 54%, var(--metal-m) 54% 100%);
+}
+.conduit.collier {
+  background-image: linear-gradient(180deg, #6a6d5b 0 40%, #3c3f33 40% 100%);
+}
+
+/* ---- Nourrice d'eau : plastique mat, bouchon et robinet ------------------ */
+.nourrice {
+  border-width: var(--trait, 1.3px); border-radius: 4px;
+  background-image:
+    linear-gradient(90deg, transparent 0 14%, rgba(255,255,255,.10) 14% 20%, transparent 20% 100%),
+    linear-gradient(180deg, #5c6a52 0 30%, #44503c 30% 74%, #2e3728 74% 100%);
+}
+.nourrice.bouchon {
+  border-radius: 50%;
+  background-image: linear-gradient(180deg, #767f63 0 46%, #474f39 46% 100%);
+}
+.nourrice.robinet {
+  border-width: var(--trait, .9px); border-radius: 2px 2px 4px 4px;
+  background-image: linear-gradient(180deg, #8a8f74 0 40%, #4a4f3c 40% 100%);
+}
+
+/* ---- Chevalet : ardoise écrite à la craie ------------------------------- */
+.ardoise {
+  border-width: var(--trait, 1.2px);
+  background-color: #23281d;
+  background-image:
+    linear-gradient(90deg, transparent 0 10%, rgba(226,226,208,.70) 10% 62%, transparent 62% 100%),
+    linear-gradient(90deg, transparent 0 10%, rgba(226,226,208,.52) 10% 44%, transparent 44% 100%),
+    linear-gradient(90deg, transparent 0 10%, rgba(226,226,208,.58) 10% 54%, transparent 54% 100%),
+    linear-gradient(90deg, transparent 0 10%, rgba(226,226,208,.40) 10% 36%, transparent 36% 100%),
+    radial-gradient(ellipse at 70% 80%, rgba(226,226,208,.07) 0 50%, transparent 51%);
+  background-repeat: no-repeat;
+  background-size: 100% 4px, 100% 4px, 100% 4px, 100% 4px, auto;
+  background-position: 0 22%, 0 38%, 0 54%, 0 70%, 0 0;
+}
+.ardoise.cadre {
+  background-image: linear-gradient(180deg, var(--bois-m) 0 44%, var(--bois-b) 44% 100%);
+}
+
+/* ---- Fût, extincteur, siège pliant, lanterne, trousse ------------------- */
+.fut {
+  border-width: var(--trait, 1.3px);
+  background-image:
+    repeating-linear-gradient(0deg, rgba(23,26,16,.24) 0 1.2px, transparent 1.2px 15px),
+    linear-gradient(90deg, #3f4435 0 22%, #596049 22% 56%, #30342a 56% 100%);
+}
+.fut.cercle {
+  background-image: linear-gradient(180deg, #6b7258 0 42%, #383d2e 42% 100%);
+}
+.extincteur {
+  border-width: var(--trait, 1.1px); border-radius: 3px;
+  background-image:
+    linear-gradient(90deg, transparent 0 16%, rgba(255,255,255,.16) 16% 24%, transparent 24% 100%),
+    linear-gradient(180deg, #a8321f 0 30%, #872515 30% 76%, #5d1a0e 76% 100%);
+}
+.extincteur.tete {
+  background-image: linear-gradient(180deg, #70746090 0 40%, #2f3328 40% 100%), linear-gradient(#4a4e3e, #4a4e3e);
+}
+.toile-siege {
+  border-width: var(--trait, 1.1px); border-radius: 3px;
+  background-image:
+    repeating-linear-gradient(44deg, rgba(23,26,16,.22) 0 1.3px, transparent 1.3px 7px),
+    linear-gradient(180deg, var(--toile-m) 0 36%, var(--toile-b) 36% 100%);
+}
+.lanterne {
+  border-width: var(--trait, 1px); border-radius: 2px;
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,.45) 0 16%, transparent 16% 78%, rgba(0,0,0,.45) 78% 100%),
+    linear-gradient(90deg, #4c5140 0 18%, #f2dfa0 18% 74%, #585d49 74% 100%);
+  box-shadow: 0 0 30px 8px rgba(242,223,160,.22);
+}
+.lanterne.dessus, .lanterne.dessous {
+  background-image: linear-gradient(180deg, #595e4a 0 50%, #33372b 50% 100%);
+  box-shadow: none;
+}
+.lanterne.poignee {
+  background-image: linear-gradient(180deg, #6d7259 0 44%, #353a2c 44% 100%);
+  box-shadow: none;
+}
+.secours {
+  border-width: var(--trait, 1.2px); border-radius: 2px;
+  background-image:
+    linear-gradient(90deg, transparent 0 40%, #b8362050 40% 60%, transparent 60% 100%),
+    linear-gradient(180deg, transparent 0 38%, #b83620 38% 62%, transparent 62% 100%),
+    linear-gradient(180deg, #d8d2bb 0 40%, #b5af96 40% 100%);
+}
+
+/* ============================================================ les matières
+
+   Chaque face reçoit sa texture et son ombre de contact par `::before` : un
+   calque de plus, aucun nœud de plus, et les fonds existants restent intacts.
+
+   Deux variables commandent tout :
+     --grain      la tuile, fabriquée au chargement par `matiere.js`
+     --grain-pas  sa période, en centimètres de monde
+
+   `--ao` vient de `poser()` : c'est le rayon de l'ombre, proportionné à la
+   pièce. Un creux fixe aurait noirci un pied de table de 4 cm de large et
+   n'aurait rien fait sur une paroi de huit mètres. */
+
+.face::before {
+  content: ''; position: absolute; inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: var(--grain, none);
+  background-size: var(--grain-pas, 40px) var(--grain-pas, 40px);
+  box-shadow: var(--ombrage, none);
+}
+
+/* L'ombre de contact : un creux sur tout le pourtour, et un appui plus marqué
+   en pied. C'est elle qui sépare deux volumes de même couleur posés l'un sur
+   l'autre — sans elle, une pile de caisses n'est qu'une seule grande caisse. */
+/* Les pans de toile, le toit et le plancher en sont exclus : ils sont faits
+   de lés jointifs qui composent une seule surface, et creuser le pourtour de
+   chacun les découpait en autant de panneaux. L'ombre de contact est faite
+   pour séparer deux objets, pas deux morceaux du même. */
+.rabat, .bavette,
+.bois, .charpente, .gousset, .caisse, .pelicase, .munitions, .etui, .touret,
+.metal, .plot, .piles, .bidon, .sac, .sable, .casque, .tasse, .thermos, .tel,
+.poele, .conduit, .fut, .extincteur, .nourrice, .casque-lourd, .gilet,
+.lanterne, .secours, .arme, .toile-siege, .ardoise, .affiche {
+  --ombrage:
+    inset 0 0 var(--ao, 10px) rgba(23, 26, 16, .46),
+    inset 0 calc(var(--ao, 10px) * -.45) calc(var(--ao, 10px) * .9) rgba(23, 26, 16, .26);
+}
+/* Le dessus d'un volume prend la lumière de la baladeuse : on y inverse
+   l'appui, sinon tout plateau paraît sale. */
+.dessus {
+  --ombrage:
+    inset 0 0 var(--ao, 10px) rgba(23, 26, 16, .34),
+    inset 0 calc(var(--ao, 10px) * .4) calc(var(--ao, 10px) * .8) rgba(255, 255, 255, .07);
+}
+
+/* ---- l'affectation des tuiles ---------------------------------------- */
+
+/* Toile : grande maille sur les pans de tente, serrée sur ce qui se porte. */
+.paroi, .pignon, .toit, .rabat, .bavette { --grain: var(--t-toile); --grain-pas: 54px; }
+.sac, .toile-siege, .gilet { --grain: var(--t-toile); --grain-pas: 22px; }
+.sable { --grain: var(--t-jute); --grain-pas: 26px; }
+
+/* Bois : le fil est long, la tuile l'est donc aussi. */
+/* Une tuile longue : un mètre dix de fil avant que le dessin ne revienne. */
+.bois, .charpente, .gousset, .etui, .touret { --grain: var(--t-bois); --grain-pas: 112px; }
+.caisse { --grain: var(--t-bois); --grain-pas: 74px; }
+.sol { --grain: var(--t-bois); --grain-pas: 96px; }
+
+/* Tôle : brossée, rayée, et d'autant plus fine que la pièce est petite. */
+.metal, .plot, .piles, .bidon, .munitions, .poele, .conduit, .fut,
+.extincteur, .casque, .casque-lourd, .nourrice, .lanterne, .secours,
+.arme, .tasse, .thermos { --grain: var(--t-metal); --grain-pas: 19px; }
+
+/* Polymère moulé : le grain de peau des caisses étanches. */
+.pelicase, .tel { --grain: var(--t-polymere); --grain-pas: 22px; }
+
+/* Papier : grain court, à peine marqué. */
+.affiche, .ardoise { --grain: var(--t-papier); --grain-pas: 30px; }
+
+/* ---- des valeurs moins tranchées ------------------------------------- */
+
+/* Les bornes franches étaient le parti pris du dessin ; tenues sur de grandes
+   surfaces, elles découpaient chaque pan en bandes et donnaient l'empilement
+   de blocs qu'on voulait éviter. On garde une rupture nette là où la forme le
+   demande, et on laisse la valeur fondre ailleurs. */
+.paroi {
+  border-left-width: var(--trait, 1.4px);
+  background-image:
+    repeating-linear-gradient(46deg, rgba(23,26,16,.11) 0 1.4px, transparent 1.4px 11px),
+    linear-gradient(180deg,
+      var(--toile-h) 0 14%, var(--toile-m) 44%, var(--toile-b) 74%,
+      var(--toile-n) 94%, var(--toile-n) 100%);
+}
+.pignon {
+  background-image:
+    repeating-linear-gradient(46deg, rgba(23,26,16,.15) 0 1.6px, transparent 1.6px 10px),
+    linear-gradient(180deg, var(--toile-b) 0 18%, var(--toile-n) 82%);
+}
+.toit.d {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.16) 0 1.4px, transparent 1.4px 88px),
+    linear-gradient(90deg, var(--toit-h) 0 10%, var(--toile-m) 44%, var(--toile-b) 92%);
+}
+.toit.g {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.16) 0 1.4px, transparent 1.4px 88px),
+    linear-gradient(270deg, var(--toit-h) 0 10%, var(--toile-m) 44%, var(--toile-b) 92%);
+}
+.bois {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg,
+    var(--bois-h) 0 12%, var(--bois-m) 52%, var(--bois-b) 96%);
+}
+.bois.dessus {
+  background-image: linear-gradient(180deg, var(--bois-h) 0 34%, var(--bois-m) 96%);
+}
+.bois.sombre {
+  background-image: linear-gradient(180deg, var(--bois-m) 0 18%, var(--bois-b) 88%);
+}
+.bois.mat {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(90deg,
+    var(--bois-b) 0 6%, var(--bois-m) 38%, var(--bois-h) 82%);
+}
+.charpente {
+  background-image: linear-gradient(180deg,
+    var(--bois-h) 0 10%, var(--bois-m) 48%, var(--bois-b) 94%);
+}
+.charpente.dessous {
+  background-image: linear-gradient(180deg, var(--bois-b) 0 60%, var(--bois-m) 100%);
+}
+.charpente.dessus {
+  background-image: linear-gradient(180deg, var(--bois-h) 0 40%, var(--bois-m) 100%);
+}
+.charpente.faitiere.av, .charpente.faitiere.ar,
+.charpente.panne.av, .charpente.panne.ar {
+  background-image: linear-gradient(180deg, var(--bois-m) 0 16%, var(--bois-b) 90%);
+}
+.charpente.chevron, .charpente.poteau, .charpente.huisserie {
+  background-image: linear-gradient(90deg,
+    var(--bois-b) 0 5%, var(--bois-m) 36%, var(--bois-h) 78%, var(--bois-m) 100%);
+}
+.charpente.chevron.bas {
+  background-image: linear-gradient(90deg, var(--bois-b) 0 30%, var(--bois-m) 100%);
+}
+.caisse {
+  border-width: var(--trait, 1.4px);
+  background-image:
+    linear-gradient(90deg, transparent 0 12%, rgba(23,26,16,.38) 12% 15%,
+                    transparent 15% 85%, rgba(23,26,16,.38) 85% 88%, transparent 88%),
+    linear-gradient(180deg, var(--caisse-h) 0 16%, var(--caisse-m) 56%, var(--caisse-b) 96%);
+}
+.caisse.dessus {
+  background-image: linear-gradient(180deg, var(--caisse-h) 0 38%, var(--caisse-m) 100%);
+}
+.metal, .plot, .piles {
+  border-width: var(--trait, 1.4px);
+  background-image: linear-gradient(180deg,
+    var(--metal-h) 0 10%, var(--metal-m) 48%, var(--metal-b) 94%);
+}
+.sol {
+  background-color: var(--sol-h);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.72) 0 1.6px, transparent 1.6px 48px),
+    repeating-linear-gradient(90deg, rgba(23,26,16,.16) 0 1px, transparent 1px 12px);
+  /* pas de dégradé vertical ici : le plancher est fait de douze lames posées
+     à plat, et un dégradé par lame aurait zébré le sol d'autant de bandes */
+}
+.sable {
+  border-width: var(--trait, 1.4px); border-radius: 7px;
+  background-image: linear-gradient(180deg,
+    var(--sable-h) 0 18%, var(--sable-m) 58%, var(--sable-b) 96%);
+}
+
+/* Quelques arêtes cassées : un coin parfaitement vif est ce qui reste de plus
+   « cube » une fois la matière posée. Un à trois centimètres suffisent. */
+.caisse { border-radius: 2.5px; }
+.pelicase { border-radius: 4px; }
+.munitions, .piles, .plot, .fut, .poele, .bidon { border-radius: 2.5px; }
+.charpente, .bois, .gousset { border-radius: 1.6px; }
+
+/* La poignée du Pelicase est redéclarée ici : `::before` sert désormais à la
+   texture, et il faut donc annuler celle-ci sur la face qui porte la poignée. */
+.pelicase.av::before {
+  content: ''; position: absolute; left: 37%; right: 37%; top: 6%; height: 13%;
+  inset: auto; left: 37%; right: 37%; top: 6%;
+  background-image: none; box-shadow: none;
+  border: var(--trait, 1.4px) solid var(--encre); border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+}
+
+/* ====================================================== les postes en volume
+
+   Tout ce qui n'est ni imprimé ni allumé sur la face avant d'un poste est de
+   la géométrie : la coque, le berceau, les poignées, la batterie, le capot,
+   les embases et les fouets d'antenne. Les classes qui suivent habillent ces
+   volumes. */
+
+/* Le repère d'un poste : sans dimension ni transformation, il ne sert qu'à
+   rassembler les faces d'un même matériel pour qu'elles s'allument ensemble. */
+.bloc-radio {
+  position: absolute; left: 0; top: 0; width: 0; height: 0;
+  transform-style: preserve-3d;
+}
+
+/* La coque : polymère moulé vert armée, grain fin, arêtes adoucies. */
+.coque {
+  border-width: var(--trait, .7px); border-radius: 1.6px;
+  --grain: var(--t-polymere); --grain-pas: 13px;
+  --ombrage: inset 0 0 var(--ao, 5px) rgba(0, 0, 0, .5);
+  background-image: linear-gradient(180deg, #4b5140 0 14%, #3a402f 54%, #272c1e 96%);
+}
+.coque.dessus { background-image: linear-gradient(180deg, #565c49 0 42%, #3f4533 100%); }
+.coque.dessous { background-image: linear-gradient(180deg, #22261a, #171a11); }
+.coque.ar {
+  /* le dos porte la plaque signalétique et les vis de la trappe à batterie */
+  background-image:
+    linear-gradient(90deg, transparent 0 28%, rgba(255,255,255,.07) 28% 72%, transparent 72%),
+    linear-gradient(180deg, #3e4434 0 22%, #2a2f21 100%);
+}
+.coque.fl {
+  background-image: linear-gradient(90deg, #2b3022 0 16%, #464c3b 54%, #313727 100%);
+}
+
+/* Un poste en trafic s'annonce par son capot : on le repère de l'autre bout
+   de la tente sans avoir à lire son écran. Éteint, en revanche, le coffret ne
+   change pas — c'est l'écran qui s'éteint, pas le matériel qui pâlit. */
+.bloc-radio.trafic .coque.dessus {
+  background-image: linear-gradient(180deg, #677a52 0 42%, #4a5736 100%);
+  box-shadow: 0 0 22px 5px rgba(126, 232, 150, .20);
+}
+
+/* Berceau et socle : tôle pliée, brossée. */
+.berceau, .dock {
+  border-width: var(--trait, .7px); border-radius: 1.4px;
+  --grain: var(--t-metal); --grain-pas: 15px;
+  --ombrage: inset 0 0 var(--ao, 5px) rgba(0, 0, 0, .46);
+  background-image: linear-gradient(180deg, #595f4b 0 16%, #3c4232 56%, #252a1d 96%);
+}
+.berceau.dessus, .dock.dessus {
+  background-image: linear-gradient(180deg, #666d55 0 44%, #454b39 100%);
+}
+
+/* Poignées de portage : arceau caoutchouté, mat, sans grain. */
+.poignee {
+  border-width: var(--trait, .6px); border-radius: 2.4px;
+  --ombrage: inset 0 0 var(--ao, 3px) rgba(0, 0, 0, .55);
+  background-image: linear-gradient(180deg, #2c3024 0 30%, #1a1d14 100%);
+}
+.poignee.patte {
+  background-image: linear-gradient(180deg, #4f5544 0 36%, #2f3426 100%);
+}
+
+/* Batterie du portatif : elle déborde par l'arrière, un ton plus sombre que
+   la coque, avec sa gorge de prise en main. */
+.batterie3d {
+  border-width: var(--trait, .7px); border-radius: 1.6px;
+  --grain: var(--t-polymere); --grain-pas: 10px;
+  --ombrage: inset 0 0 var(--ao, 4px) rgba(0, 0, 0, .52);
+  background-image: linear-gradient(180deg, #3c4231 0 18%, #2b3022 60%, #1e2218 100%);
+}
+.batterie3d.ar {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.26) 0 1.4px, transparent 1.4px 7px),
+    linear-gradient(180deg, #363c2c 0 24%, #23281b 100%);
+}
+
+/* Capot supérieur, embases, prise et alternat : les pièces usinées. */
+.capot3d {
+  border-width: var(--trait, .6px); border-radius: 1.6px;
+  --ombrage: inset 0 0 var(--ao, 3px) rgba(0, 0, 0, .5);
+  background-image: linear-gradient(180deg, #3a402f 0 36%, #262b1d 100%);
+}
+.embase, .prise3d {
+  border-width: var(--trait, .6px);
+  --grain: var(--t-metal); --grain-pas: 8px;
+  --ombrage: inset 0 0 var(--ao, 2px) rgba(0, 0, 0, .5);
+  background-image: linear-gradient(180deg, #6a7158 0 26%, #434937 66%, #272c1d 100%);
+}
+.embase.dessus, .prise3d.dessus {
+  border-radius: 50%;
+  background-image: radial-gradient(circle at 38% 32%, #7d8468 0 34%, #2a2f20 76%);
+}
+.alternat {
+  border-width: var(--trait, .6px); border-radius: 2px;
+  --ombrage: inset 0 0 var(--ao, 2px) rgba(0, 0, 0, .5);
+  background-image: linear-gradient(180deg, #2f3426 0 34%, #1b1f15 100%);
+}
+
+/* Fouet d'antenne : deux plans croisés, gainés de noir, éclairés sur une
+   arête. Il s'affine vers la pointe — d'où le dégradé dans la longueur. */
+.fouet {
+  border-width: var(--trait, .4px); border-radius: 1px;
+  --ombrage: none;
+  background-image: linear-gradient(180deg,
+    rgba(120,130,100,.55) 0 4%, #3f4531 22%, #2a2f21 70%, #1d2116 100%);
+}
+
+/* ---- les dernières bornes franches ------------------------------------
+
+   Sur un objet de quinze centimètres, un dégradé à bornes franches ne fait
+   plus un modélé : il fait trois bandes nettes, et le thermos ressemble à un
+   code-barres. On garde la coupure là où elle dit une arête, et on laisse la
+   valeur fondre partout ailleurs. */
+
+.tasse, .thermos {
+  background-image: linear-gradient(90deg,
+    var(--metal-m) 0 8%, var(--metal-h) 42%, var(--metal-b) 94%);
+}
+.munitions {
+  background-image: linear-gradient(180deg, #4d5438 0 12%, #353a25 52%, #22261a 96%);
+}
+.munitions.dessus { background-image: linear-gradient(180deg, #58603f 0 40%, #3b4129 100%); }
+.bidon {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(23,26,16,.30) 0 1.4px, transparent 1.4px 9px),
+    linear-gradient(180deg, var(--metal-h) 0 14%, var(--metal-m) 52%, var(--metal-b) 96%);
+}
+.pelicase {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 5px, transparent 5px 21px),
+    linear-gradient(180deg, #3d423a 0 14%, #262a22 54%, #171a14 96%);
+}
+.etui, .touret {
+  background-image: linear-gradient(180deg,
+    var(--bois-h) 0 12%, var(--bois-m) 50%, var(--bois-b) 96%);
+}
+.sac {
+  background-image: linear-gradient(180deg,
+    var(--toile-h) 0 16%, var(--toile-m) 54%, var(--toile-b) 96%);
+}
+.casque { background-image: linear-gradient(180deg, var(--metal-h) 0 22%, var(--metal-m) 90%); }
+.piles, .plot {
+  background-image: linear-gradient(180deg,
+    var(--metal-h) 0 12%, var(--metal-m) 50%, var(--metal-b) 96%);
+}
+
+/* La fréquence tient sur une ligne. Sur un écran large de dix-sept
+   centimètres de panneau, « 44.775 MHz » débordait et passait à la ligne :
+   un afficheur de poste ne renvoie pas son unité à la ligne suivante. */
+.lcd .l1 { flex-wrap: nowrap; white-space: nowrap; gap: 7px; }
+.lcd .freq { white-space: nowrap; }
+.portatif .lcd { padding: 8px 9px; font-size: 18px; }
+.portatif .lcd .l2 { font-size: 15px; }
+.portatif .lcd .l3 { font-size: 14px; }
+.manpack .lcd { font-size: 19px; }
